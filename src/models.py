@@ -41,6 +41,8 @@ class BaseNet(nn.Module):
         history = defaultdict(list)
         for epoch in range(n_epochs):
             print(f"epoch: {epoch + 1}/{n_epochs}")
+            train_n_samples = 0
+            train_loss, train_tp = [], []
             for step, data in progressbar(enumerate(train_loader, 0)):
                 # Get the inputs and labels
                 inputs, labels = data
@@ -55,14 +57,18 @@ class BaseNet(nn.Module):
                 # Perform the weights' optimization
                 self.optimizer.step()
 
+                # Store the loss and accuracy
+                train_loss.append(loss.item())
+                train_preds = self._get_predictions(outputs)
+                train_tp.append((train_preds == labels.numpy()).sum())
+                train_n_samples += labels.shape[0]
+
             # Update the learning rate
             self.lr_scheduler.step()
 
             # Compute the epoch training loss and accuracy
-            train_outputs, train_labels = self.predict(train_loader)
-            train_loss = self.criterion(train_outputs, train_labels)
-            train_preds = self._get_predictions(train_outputs)
-            train_accuracy = get_accuracy(train_preds, train_labels.numpy())
+            train_loss = np.mean(train_loss)
+            train_accuracy = sum(train_tp) / train_n_samples
             history["loss"].append(train_loss.item())
             history["accuracy"].append(train_accuracy.item())
 
@@ -185,7 +191,7 @@ class PreActBlock(nn.Module):
 
 class PreActResNet(BaseNet):
     def __init__(
-        self, block=PreActBlock, num_blocks=[2, 2, 2, 2], num_classes=10
+        self, block=PreActBlock, num_blocks=[2, 2, 2, 2], num_classes=4
     ):
         super(PreActResNet, self).__init__()
         self.in_planes = 64
