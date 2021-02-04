@@ -35,7 +35,9 @@ class Container:
     def generate_subset(self, dataset: Any, init_class_samples: int) -> Subset:
         """Subsample a dataset."""
         # Compute the number of samples of each class in the subset
-        n_class_samples = int(np.floor(init_class_samples / self.reduction_rate))
+        n_class_samples = int(
+            np.floor(init_class_samples / self.reduction_rate)
+        )
 
         indices_split = np.random.RandomState(seed=42).choice(
             init_class_samples, n_class_samples, replace=False
@@ -89,7 +91,7 @@ class Container:
             train_subset, batch_size=self.batch_size, sampler=train_sampler
         )
         val_loader = DataLoader(
-            train_subset, batch_size=self.batch_size, sampler=val_sampler
+            train_subset, batch_size=1, sampler=val_sampler
         )
         test_loader = DataLoader(test_subset, batch_size=self.batch_size)
 

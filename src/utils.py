@@ -2,6 +2,7 @@ import sys
 from typing import Iterable
 
 import matplotlib.pyplot as plt
+import numpy as np
 import pandas as pd
 import seaborn as sns
 
@@ -48,3 +49,11 @@ def plot_training_curves(metric: str, history: pd.DataFrame):
     )
     plt.title(f"{metric} over training epochs")
     plt.show()
+
+
+def get_accuracy(predictions: np.array, labels: np.array) -> float:
+    """"""
+    n_true_positive = (predictions == labels).sum()
+    accuracy = n_true_positive / labels.shape[0]
+
+    return accuracy
