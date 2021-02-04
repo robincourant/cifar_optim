@@ -59,10 +59,16 @@ class Container:
         """Load a dataset given a train and test data transformers."""
         # Load and transform the train and test sets
         train_set = CIFAR10(
-            self.rootdir, train=True, download=True, transform=train_data_transformer
+            self.rootdir,
+            train=True,
+            download=True,
+            transform=train_data_transformer,
         )
         test_set = CIFAR10(
-            self.rootdir, train=False, download=True, transform=test_data_transformer
+            self.rootdir,
+            train=False,
+            download=True,
+            transform=test_data_transformer,
         )
 
         # Subsample the train and test sets
@@ -75,7 +81,8 @@ class Container:
             init_class_samples=1000,
         )
         # Initialize the train-validation splitter
-        train_sampler, val_sampler = self.train_validation_split(len(train_subset))
+        n_samples = len(train_subset)
+        train_sampler, val_sampler = self.train_validation_split(n_samples)
 
         # Generate the train, validation and test loaders
         train_loader = DataLoader(

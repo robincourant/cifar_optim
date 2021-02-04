@@ -1,5 +1,6 @@
 from data_processing import Container
 from models import NaiveConvNet
+from utils import plot_training_curves
 
 if __name__ == "__main__":
     container = Container()
@@ -11,3 +12,5 @@ if __name__ == "__main__":
         train_loader=container.train_loader,
         validation_loader=container.validation_loader,
     )
+    plot_training_curves("loss", history)
+    plot_training_curves("accuracy", history)

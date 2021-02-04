@@ -1,6 +1,10 @@
 import sys
 from typing import Iterable
 
+import matplotlib.pyplot as plt
+import pandas as pd
+import seaborn as sns
+
 
 def progressbar(to_progress: Iterable, n_steps=100, length=60):
     """Display a progress bar when iterating `to_progress`."""
@@ -20,3 +24,27 @@ def progressbar(to_progress: Iterable, n_steps=100, length=60):
         show(k + 1)
     sys.stdout.write("\n")
     sys.stdout.flush()
+
+
+def plot_training_curves(metric: str, history: pd.DataFrame):
+    """Plot the evolution of a train and validation metric over the epochs.
+
+    :param metric: name of the metric to plot.
+    :param history: history of the training (accuracy and loss).
+    """
+    sns.lineplot(
+        x="epochs",
+        y=metric,
+        data=history,
+        label="train",
+        color="#e41a1c",
+    )
+    sns.lineplot(
+        x="epochs",
+        y="val_" + metric,
+        data=history,
+        label="validation",
+        color="#377eb8",
+    )
+    plt.title(f"{metric} over training epochs")
+    plt.show()

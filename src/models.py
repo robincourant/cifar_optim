@@ -1,6 +1,6 @@
 from collections import defaultdict
-from typing import Dict, List
 
+import pandas as pd
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
@@ -13,7 +13,7 @@ from utils import progressbar
 class BaseNet(nn.Module):
     def __init__(self):
         super(BaseNet, self).__init__()
-        # initialize the loss and the optimizer
+        # Initialize the loss and the optimizer
         self.criterion = None
         self.optimizer = None
 
@@ -26,13 +26,13 @@ class BaseNet(nn.Module):
         n_epochs: int,
         train_loader: DataLoader,
         validation_loader: DataLoader,
-    ) -> Dict[str, List[float]]:
+    ) -> pd.DataFrame:
         """Train the model and compute metrics at each epoch.
 
         :param n_epochs: number of epochs.
         :param train_loader: iterable train set.
         :param validation_loader: iterable validation set.
-        :return: the history of the training (accuracy and loss).
+        :return: history of the training (accuracy and loss).
         """
         # Get labels of the train and validation set
         train_labels = torch.cat([data[1] for data in train_loader])
@@ -64,7 +64,7 @@ class BaseNet(nn.Module):
             train_loss /= step
             train_accuracy /= train_labels.shape[0]
             history["loss"].append(train_loss)
-            history["accuracy"].append(train_accuracy)
+            history["accuracy"].append(train_accuracy.item())
 
             # Compute the epoch validation loss and accuracy
             val_outputs = self.predict(validation_loader)
@@ -72,8 +72,8 @@ class BaseNet(nn.Module):
             _, val_predicted = torch.max(val_outputs, 1)
             val_accuracy = (val_predicted == val_labels).float().sum()
             val_accuracy /= val_labels.shape[0]
-            history["val_loss"].append(val_loss)
-            history["val_accuracy"].append(val_accuracy)
+            history["val_loss"].append(val_loss.item())
+            history["val_accuracy"].append(val_accuracy.item())
 
             # Print statistics at the end of each epoch
             print(
@@ -81,8 +81,10 @@ class BaseNet(nn.Module):
                 f"accuracy: {train_accuracy:.3f},",
                 f"val_accuracy: {val_accuracy:.3f} \n",
             )
+        history_df = pd.DataFrame(history)
+        history_df.index.name = "epochs"
 
-        return history
+        return history_df
 
     def predict(self, data_loader: DataLoader) -> torch.Tensor:
         """Compute predictions of the model given samples.
