@@ -5,6 +5,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 import seaborn as sns
+import torch
 
 
 def progressbar(to_progress: Iterable, n_steps=100, length=60):
@@ -51,9 +52,10 @@ def plot_training_curves(metric: str, history: pd.DataFrame):
     plt.show()
 
 
-def get_accuracy(predictions: np.array, labels: np.array) -> float:
-    """"""
-    n_true_positive = (predictions == labels).sum()
+def get_accuracy(outputs: torch.Tensor, labels: np.array) -> float:
+    """Compute accuracy from output probabiliies."""
+    _, predictions = torch.max(outputs, 1)
+    n_true_positive = (predictions.numpy() == labels).sum()
     accuracy = n_true_positive / labels.shape[0]
 
     return accuracy
