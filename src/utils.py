@@ -1,9 +1,10 @@
+import os
 import sys
 from typing import Iterable
 
 import matplotlib.pyplot as plt
-import numpy as np
 import pandas as pd
+from sklearn import metrics
 import seaborn as sns
 import torch
 
@@ -28,11 +29,12 @@ def progressbar(to_progress: Iterable, n_steps=100, length=60):
     sys.stdout.flush()
 
 
-def plot_training_curves(metric: str, history: pd.DataFrame):
+def plot_training_curves(metric: str, history: pd.DataFrame, path: str):
     """Plot the evolution of a train and validation metric over the epochs.
 
     :param metric: name of the metric to plot.
     :param history: history of the training (accuracy and loss).
+    :param path: if provided save figure at this path.
     """
     sns.lineplot(
         x="epochs",
@@ -49,13 +51,19 @@ def plot_training_curves(metric: str, history: pd.DataFrame):
         color="#377eb8",
     )
     plt.title(f"{metric} over training epochs")
+
+    if path:
+        directory_name = os.path.dirname(path)
+        if not os.path.exists(directory_name):
+            os.makedirs(directory_name)
+        plt.savefig(path)
+
     plt.show()
 
 
-def get_accuracy(outputs: torch.Tensor, labels: np.array) -> float:
+def get_accuracy(outputs: torch.Tensor, labels: torch.Tensor) -> float:
     """Compute accuracy from output probabiliies."""
     _, predictions = torch.max(outputs, 1)
-    n_true_positive = (predictions.numpy() == labels).sum()
-    accuracy = n_true_positive / labels.shape[0]
+    accuracy = metrics.accuracy_score(labels.numpy(), predictions.numpy())
 
     return accuracy

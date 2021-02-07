@@ -13,7 +13,12 @@ pip install -r requirements.txt
 
 ## Usage
 
-Run the following command to launch the main:
+Example of command to launch the main:
 ```
-python src/main.py
+python src/main.py minicifar_scratch naive_convnet --epochs 15
+```
+
+To monitor metrics with `tensorboard`:
+```
+tensorboard --logdir=logs
 ```

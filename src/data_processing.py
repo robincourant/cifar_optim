@@ -9,12 +9,17 @@ import torchvision.transforms as transforms
 
 
 class Container:
-    def __init__(self):
+    def __init__(
+        self,
+        train_size: float = 0.8,
+        n_classes: int = 4,
+        batch_size: int = 32,
+    ):
         self.rootdir = "./data"
-        self.train_size = 0.8
-        self.n_classes = 4  # Number of classes to keep
+        self.train_size = train_size
+        self.n_classes = n_classes  # Number of classes to keep
         self.reduction_rate = 5  # Keep 1000/R training samples and 100/R test
-        self.batch_size = 32
+        self.batch_size = batch_size
 
     def train_validation_split(
         self, n_train_samples: int
@@ -82,6 +87,7 @@ class Container:
             dataset=test_set,
             init_class_samples=1000,
         )
+
         # Initialize the train-validation splitter
         n_samples = len(train_subset)
         train_sampler, val_sampler = self.train_validation_split(n_samples)
@@ -91,7 +97,7 @@ class Container:
             train_subset, batch_size=self.batch_size, sampler=train_sampler
         )
         val_loader = DataLoader(
-            train_subset, batch_size=1, sampler=val_sampler
+            train_subset, batch_size=self.batch_size, sampler=val_sampler
         )
         test_loader = DataLoader(test_subset, batch_size=self.batch_size)
 
@@ -109,8 +115,8 @@ class Container:
         # Initialize the data transformers for train and test sets
         train_data_transformer = transforms.Compose(
             [
-                transforms.RandomCrop(32, padding=4),  # Augmentation
-                transforms.RandomHorizontalFlip(),  # Augmentation
+                # transforms.RandomCrop(32, padding=4),  # Augmentation
+                # transforms.RandomHorizontalFlip(),  # Augmentation
                 transforms.ToTensor(),  # Casting
                 normalizer,  # Normalization
             ]

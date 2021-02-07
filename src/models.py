@@ -1,7 +1,6 @@
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-import torch.optim as optim
 import torchvision
 
 
@@ -10,6 +9,7 @@ class NaiveConvNet(nn.Module):
 
     def __init__(self, n_classes=4):
         super(NaiveConvNet, self).__init__()
+        self.name = "naive_convnet"
         self.n_classes = n_classes
 
         self.conv1 = nn.Conv2d(3, 6, 5)
@@ -18,12 +18,6 @@ class NaiveConvNet(nn.Module):
         self.fc1 = nn.Linear(16 * 5 * 5, 120)
         self.fc2 = nn.Linear(120, 84)
         self.fc3 = nn.Linear(84, self.n_classes)
-
-        self.criterion = nn.CrossEntropyLoss()
-        self.optimizer = optim.SGD(self.parameters(), lr=0.001, momentum=0.9)
-        self.lr_scheduler = optim.lr_scheduler.StepLR(
-            self.optimizer, step_size=100, gamma=0.1
-        )
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         """Perform the forward propagation given a sample."""
@@ -82,6 +76,7 @@ class PreActResNet(nn.Module):
         self, block=PreActBlock, num_blocks=[2, 2, 2, 2], n_classes=4
     ):
         super(PreActResNet, self).__init__()
+        self.name = "preact_resnet"
         self.in_planes = 64
 
         self.conv1 = nn.Conv2d(
@@ -92,12 +87,6 @@ class PreActResNet(nn.Module):
         self.layer3 = self._make_layer(block, 256, num_blocks[2], stride=2)
         self.layer4 = self._make_layer(block, 512, num_blocks[3], stride=2)
         self.linear = nn.Linear(512 * block.expansion, n_classes)
-
-        self.criterion = nn.CrossEntropyLoss()
-        self.optimizer = optim.SGD(self.parameters(), lr=0.001, momentum=0.6)
-        self.lr_scheduler = optim.lr_scheduler.StepLR(
-            self.optimizer, step_size=10, gamma=0.1
-        )
 
     def _make_layer(self, block, planes, num_blocks, stride):
         strides = [stride] + [1] * (num_blocks - 1)
@@ -124,6 +113,7 @@ class ResNet18(nn.Module):
 
     def __init__(self, n_classes=4):
         super(ResNet18, self).__init__()
+        self.name = "pretrained_resnet18"
         self.n_classes = n_classes
 
         # Load the pre-trained model
@@ -136,16 +126,6 @@ class ResNet18(nn.Module):
         # Initialize a fully connected layer to add at the end of the model
         num_ftrs = self.model.fc.in_features
         self.model.fc = nn.Linear(num_ftrs, self.n_classes)
-
-        self.criterion = nn.CrossEntropyLoss()
-        self.optimizer = optim.SGD(
-            self.model.fc.parameters(),
-            lr=0.001,
-            momentum=0.9,
-        )
-        self.lr_scheduler = optim.lr_scheduler.StepLR(
-            self.optimizer, step_size=7, gamma=0.1
-        )
 
     def forward(self, x):
         """Perform the forward propagation given a sample."""
