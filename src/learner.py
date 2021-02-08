@@ -14,11 +14,20 @@ from utils import get_accuracy, progressbar
 
 
 class Learner:
-    def __init__(self, net: nn.Module, learning_rate: float = 0.001):
+    def __init__(
+        self,
+        net: nn.Module,
+        learning_rate: float = 0.001,
+        weight_decay: float = 0,
+        momentum: float = 0.9,
+    ):
         self.net = net
         self.criterion = nn.CrossEntropyLoss()
         self.optimizer = optim.SGD(
-            self.net.parameters(), lr=learning_rate, momentum=0.9
+            self.net.parameters(),
+            lr=learning_rate,
+            weight_decay=weight_decay,
+            momentum=momentum,
         )
         self.lr_scheduler = optim.lr_scheduler.StepLR(
             self.optimizer, step_size=10, gamma=0.1
