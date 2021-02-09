@@ -18,7 +18,7 @@ class Learner:
         self,
         net: nn.Module,
         learning_rate: float = 0.001,
-        weight_decay: float = 0,
+        weight_decay: float = 5e-4,
         momentum: float = 0.9,
     ):
         self.net = net
@@ -30,12 +30,14 @@ class Learner:
             momentum=momentum,
         )
         self.lr_scheduler = optim.lr_scheduler.StepLR(
-            self.optimizer, step_size=10, gamma=0.1
+            self.optimizer, step_size=3, gamma=0.1
         )
         self.n_early_stopping = 3
 
         date = datetime.now().strftime("%d%m%Y%H%M%S")
-        self.model_name = f"{self.net.name}_{date}"
+        self.model_name = (
+            f"{self.net.name}_lr{learning_rate}_wd{weight_decay}_m{momentum}"
+        )
         self.writer = SummaryWriter(f"logs/{self.model_name}")
 
     def fit(
@@ -82,13 +84,15 @@ class Learner:
 
             # Save the best model
             if val_accuracy > best_accuracy:
+                best_accuracy = val_accuracy
                 self._save()
 
             # Early stopping
             if (self.current_epoch >= self.n_early_stopping) and (
-                history["loss"][-1] > history["loss"][-self.n_early_stopping]
+                history["val_loss"][-1]
+                > history["val_loss"][-self.n_early_stopping]
             ):
-                print("Early stopping criterion reached.")
+                print("Early stopping criterion reached")
                 break
 
             # Print statistics at the end of each epoch
@@ -101,6 +105,8 @@ class Learner:
         history_df = pd.DataFrame(history)
         history_df.index.name = "epochs"
         self.writer.close()
+        # Load the best model
+        self.net = self._load(f"./models/{self.model_name}.pth")
 
         return history_df
 
@@ -203,8 +209,9 @@ class Learner:
         if not os.path.exists("./models"):
             os.makedirs("./models")
         saving_path = f"./models/{self.model_name}.pth"
-        torch.save(self.net.state_dict(), saving_path)
+        torch.save(self.net, saving_path)
+        print("Best model saved")
 
     def _load(self, model_path: str):
         """TODO: Load a saved model."""
-        pass
+        return torch.load(model_path)

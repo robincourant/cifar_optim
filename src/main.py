@@ -26,7 +26,21 @@ if __name__ == "__main__":
         "--batch-size", "-bs", type=int, default=32, help="Batch size"
     )
     parser.add_argument(
-        "--learning-rate", "-lr", default=1e-3, help="Learning rate value"
+        "--learning-rate",
+        "-lr",
+        type=float,
+        default=1e-3,
+        help="Learning rate value",
+    )
+    parser.add_argument(
+        "--weight-decay",
+        "-wd",
+        type=float,
+        default=1e-3,
+        help="Weight decay value",
+    )
+    parser.add_argument(
+        "--momentum", "-m", type=float, default=1e-3, help="Momentum value"
     )
     args = parser.parse_args()
 
@@ -47,7 +61,12 @@ if __name__ == "__main__":
     elif model_name == "pretrained_resnet18":
         net = ResNet18(n_classes=container.n_classes)
 
-    learner = Learner(net, learning_rate=args.learning_rate)
+    net_params = {
+        "learning_rate": args.learning_rate,
+        "momentum": args.momentum,
+        "weight_decay": args.weight_decay,
+    }
+    learner = Learner(net, **net_params)
 
     history = learner.fit(
         n_epochs=args.epochs,
