@@ -225,3 +225,7 @@ class Learner:
     def get_summary(self, input_size: Tuple[int, int, int]):
         """Print summary of the model."""
         summary(self.net, input_size)
+
+    def quantize_half(self):
+        """Perform a half quantization."""
+        self.net.half()
