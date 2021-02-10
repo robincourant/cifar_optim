@@ -33,7 +33,7 @@ class Learner:
             momentum=momentum,
         )
         self.lr_scheduler = optim.lr_scheduler.StepLR(
-            self.optimizer, step_size=5, gamma=0.1
+            self.optimizer, step_size=5, gamma=0.9
         )
         self.n_early_stopping = 3
 
@@ -67,6 +67,8 @@ class Learner:
             self.lr_scheduler.step()
 
             # Evaluation step
+            if self.net.quantizer == "binary":
+                self.net.binarize_params()
             train_outputs, train_labels, train_loss = self.evaluate(
                 train_loader
             )
@@ -88,6 +90,9 @@ class Learner:
             if val_accuracy > best_accuracy:
                 best_accuracy = val_accuracy
                 self._save()
+
+            if self.net.quantizer == "binary":
+                self.net.restore_params()
 
             # Print statistics at the end of each epoch
             print(
@@ -161,13 +166,19 @@ class Learner:
             labels = labels.to(self.device)
             # Reset gradients
             self.optimizer.zero_grad()
+            if self.net.quantizer == "binary":
+                self.net.binarize_params()
             # Perform forward propagation
             outputs = self.net(inputs)
+            if self.net.quantizer == "binary":
+                self.net.restore_params()
             # Compute loss and perform back propagation
             loss = self.criterion(outputs, labels)
             loss.backward()
             # Perform the weights' optimization
             self.optimizer.step()
+            if self.net.quantizer == "binary":
+                self.net.clip_params()
 
             train_outputs.append(outputs)
             train_labels.append(labels)
