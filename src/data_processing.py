@@ -14,11 +14,14 @@ class Container:
         train_size: float = 0.8,
         n_classes: int = 4,
         batch_size: int = 32,
+        reduction_rate: int = 5,
     ):
         self.rootdir = "./data"
         self.train_size = train_size
         self.n_classes = n_classes  # Number of classes to keep
-        self.reduction_rate = 5  # Keep 1000/R training samples and 100/R test
+        self.reduction_rate = (
+            reduction_rate  # Keep 1000/R training samples and 100/R test
+        )
         self.batch_size = batch_size
 
     def train_validation_split(
@@ -104,6 +107,18 @@ class Container:
         self.train_loader = train_loader
         self.validation_loader = val_loader
         self.test_loader = test_loader
+        
+        self.dataset_summary = {}
+        self.dataset_summary["train_set_size"] = len(train_loader.dataset)
+        self.dataset_summary["test_set_size"] = len(test_loader.dataset)
+        self.dataset_summary["input_size"] = (
+            val_loader.dataset[0][0].numpy().shape
+        )
+
+        print("\nDatasets summary:")
+        for key in self.dataset_summary.keys():
+            print(key, ": ", self.dataset_summary[key])
+        print("\n")
 
     def load_scratch_dataset(self):
         """Load and process a dataset for untrained models (from scratch)."""
