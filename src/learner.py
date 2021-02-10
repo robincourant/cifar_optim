@@ -72,8 +72,12 @@ class Learner:
             )
             val_outputs, val_labels, val_loss = self.evaluate(val_loader)
             # Compute training and validation accuracy
-            train_accuracy = get_accuracy(train_outputs, train_labels)
-            val_accuracy = get_accuracy(val_outputs, val_labels)
+            train_accuracy = get_accuracy(train_outputs, train_labels).to(
+                self.device
+            )
+            val_accuracy = get_accuracy(val_outputs, val_labels).to(
+                self.device
+            )
 
             # Store metrics
             history["loss"].append(train_loss)
