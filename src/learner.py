@@ -1,5 +1,4 @@
 from collections import defaultdict
-from datetime import datetime
 import os
 from typing import Tuple
 
@@ -9,6 +8,7 @@ import torch.nn as nn
 import torch.optim as optim
 from torch.utils.data import DataLoader
 from torch.utils.tensorboard import SummaryWriter
+from torchsummary import summary
 
 from utils import get_accuracy, progressbar
 
@@ -30,11 +30,10 @@ class Learner:
             momentum=momentum,
         )
         self.lr_scheduler = optim.lr_scheduler.StepLR(
-            self.optimizer, step_size=3, gamma=0.1
+            self.optimizer, step_size=5, gamma=0.1
         )
         self.n_early_stopping = 3
 
-        date = datetime.now().strftime("%d%m%Y%H%M%S")
         self.model_name = (
             f"{self.net.name}_lr{learning_rate}_wd{weight_decay}_m{momentum}"
         )
@@ -87,6 +86,13 @@ class Learner:
                 best_accuracy = val_accuracy
                 self._save()
 
+            # Print statistics at the end of each epoch
+            print(
+                f"loss: {train_loss:.3f}, val_loss: {val_loss:.3f}",
+                f"accuracy: {train_accuracy:.3f},",
+                f"val_accuracy: {val_accuracy:.3f} \n",
+            )
+
             # Early stopping
             if (self.current_epoch >= self.n_early_stopping) and (
                 history["val_loss"][-1]
@@ -95,18 +101,11 @@ class Learner:
                 print("Early stopping criterion reached")
                 break
 
-            # Print statistics at the end of each epoch
-            print(
-                f"loss: {train_loss:.3f}, val_loss: {val_loss:.3f}",
-                f"accuracy: {train_accuracy:.3f},",
-                f"val_accuracy: {val_accuracy:.3f} \n",
-            )
-
         history_df = pd.DataFrame(history)
         history_df.index.name = "epochs"
         self.writer.close()
         # Load the best model
-        self.net = self._load(f"./models/{self.model_name}.pth")
+        self.net = self.load(f"./models/{self.model_name}.pth")
 
         return history_df
 
@@ -212,6 +211,10 @@ class Learner:
         torch.save(self.net, saving_path)
         print("Best model saved")
 
-    def _load(self, model_path: str):
+    def load(self, model_path: str):
         """TODO: Load a saved model."""
         return torch.load(model_path)
+
+    def get_summary(self, input_size: Tuple[int, int, int]):
+        """Print summary of the model."""
+        summary(self.net, input_size)

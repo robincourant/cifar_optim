@@ -67,7 +67,10 @@ if __name__ == "__main__":
         "weight_decay": args.weight_decay,
     }
     learner = Learner(net, **net_params)
+    learner.get_summary((3, 32, 32))
+    print("\n")
 
+    # Fit the model
     history = learner.fit(
         n_epochs=args.epochs,
         train_loader=container.train_loader,
