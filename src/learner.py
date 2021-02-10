@@ -21,7 +21,10 @@ class Learner:
         weight_decay: float = 5e-4,
         momentum: float = 0.9,
     ):
-        self.net = net
+        self.device = torch.device(
+            "cuda:0" if torch.cuda.is_available() else "cpu"
+        )
+        self.net = net.to(self.device)
         self.criterion = nn.CrossEntropyLoss()
         self.optimizer = optim.SGD(
             self.net.parameters(),
@@ -154,6 +157,8 @@ class Learner:
         for step, (inputs, labels) in progressbar(
             enumerate(train_loader), n_steps=len(train_loader)
         ):
+            inputs = inputs.to(self.device)
+            labels = labels.to(self.device)
             # Reset gradients
             self.optimizer.zero_grad()
             # Perform forward propagation
@@ -192,6 +197,8 @@ class Learner:
         # Iterate over the data set without updating gradients
         with torch.no_grad():
             for inputs, labels in data_loader:
+                inputs = inputs.to(self.device)
+                labels = inputs.to(self.device)
                 outputs = self.net(inputs)
                 loss = self.criterion(outputs, labels)
 
