@@ -198,7 +198,7 @@ class Learner:
         with torch.no_grad():
             for inputs, labels in data_loader:
                 inputs = inputs.to(self.device)
-                labels = inputs.to(self.device)
+                labels = labels.to(self.device)
                 outputs = self.net(inputs)
                 loss = self.criterion(outputs, labels)
 
