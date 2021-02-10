@@ -67,6 +67,8 @@ class Learner:
             self.lr_scheduler.step()
 
             # Evaluation step
+            if self.net.quantizer == "binary":
+                self.net.binarize_params()
             train_outputs, train_labels, train_loss = self.evaluate(
                 train_loader
             )
@@ -88,6 +90,9 @@ class Learner:
             if val_accuracy > best_accuracy:
                 best_accuracy = val_accuracy
                 self._save()
+
+            if self.net.quantizer == "binary":
+                self.net.restore_params()
 
             # Print statistics at the end of each epoch
             print(
