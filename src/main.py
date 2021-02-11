@@ -11,7 +11,7 @@ if __name__ == "__main__":
     parser.add_argument(
         "dataset",
         type=str,
-        choices=["minicifar_scratch", "minicifar_imagenet"],
+        choices=["cifar_scratch", "cifar_imagenet"],
         help="Dataset to load",
     )
     parser.add_argument(
@@ -56,10 +56,12 @@ if __name__ == "__main__":
     # Load and process datasets
     container = Container(batch_size=args.batch_size)
     dataset_name = args.dataset
-    if dataset_name == "minicifar_scratch":
+    if dataset_name == "cifar_scratch":
         container.load_scratch_dataset()
-    elif dataset_name == "minicifar_imagenet":
+    elif dataset_name == "cifar_imagenet":
         container.load_imagenet_dataset()
+    else:
+        raise ValueError(f"Dataset: {dataset_name} is not known")
 
     # Initialize and train the model
     model_name = args.model
@@ -69,6 +71,8 @@ if __name__ == "__main__":
         net = PreActResNet(n_classes=container.n_classes)
     elif model_name == "pretrained_resnet18":
         net = ResNet18(n_classes=container.n_classes)
+    else:
+        raise ValueError(f"Model: {model_name} is not known")
 
     quantizer_name = args.quantizer
     if quantizer_name == "half":
@@ -83,11 +87,12 @@ if __name__ == "__main__":
     }
     learner = Learner(net, **net_params)
 
-    assert (learner.device == "cuda:0") and (
-        quantizer_name != "half"
+    assert not (
+        (learner.device == "cuda:0") and (quantizer_name != "half")
     ), "Half quantizer cannot be used without CUDA"
 
-    learner.get_summary((3, 32, 32))
+    print("\n")
+    learner.get_summary(container.input_shape)
     print("\n")
 
     # Fit the model
@@ -96,17 +101,18 @@ if __name__ == "__main__":
         train_loader=container.train_loader,
         val_loader=container.validation_loader,
     )
+
     # Plot training curves
-    # plot_training_curves(
-    #     "loss",
-    #     history,
-    #     f"./logs/{learner.model_name}/training_curves/loss.png",
-    # )
-    # plot_training_curves(
-    #     "accuracy",
-    #     history,
-    #     f"./logs/{learner.model_name}/training_curves/accuracy.png",
-    # )
+    plot_training_curves(
+        "loss",
+        history,
+        f"./logs/{learner.model_name}/training_curves/loss.png",
+    )
+    plot_training_curves(
+        "accuracy",
+        history,
+        f"./logs/{learner.model_name}/training_curves/accuracy.png",
+    )
 
     train_outputs, train_labels, train_loss = learner.evaluate(
         container.train_loader

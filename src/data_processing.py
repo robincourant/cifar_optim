@@ -108,17 +108,13 @@ class Container:
         self.validation_loader = val_loader
         self.test_loader = test_loader
 
-        self.dataset_summary = {}
-        self.dataset_summary["train_set_size"] = len(train_loader.dataset)
-        self.dataset_summary["test_set_size"] = len(test_loader.dataset)
-        self.dataset_summary["input_size"] = (
-            val_loader.dataset[0][0].numpy().shape
-        )
-
         print("\nDatasets summary:")
-        for key in self.dataset_summary.keys():
-            print(key, ": ", self.dataset_summary[key])
-        print("\n")
+        self.train_set_size = len(train_loader.dataset)
+        print(f"train_set_size: {self.train_set_size:,}")
+        self.test_set_size = len(test_loader.dataset)
+        print(f"train_set_size: {self.test_set_size:,}")
+        self.input_shape = val_loader.dataset[0][0].numpy().shape
+        print(f"input_shape: {self.input_shape}")
 
     def load_scratch_dataset(self):
         """Load and process a dataset for untrained models (from scratch)."""
@@ -130,8 +126,8 @@ class Container:
         # Initialize the data transformers for train and test sets
         train_data_transformer = transforms.Compose(
             [
-                # transforms.RandomCrop(32, padding=4),  # Augmentation
-                # transforms.RandomHorizontalFlip(),  # Augmentation
+                transforms.RandomCrop(32, padding=4),  # Augmentation
+                transforms.RandomHorizontalFlip(),  # Augmentation
                 transforms.ToTensor(),  # Casting
                 normalizer,  # Normalization
             ]
