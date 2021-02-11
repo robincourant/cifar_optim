@@ -12,9 +12,9 @@ class Container:
     def __init__(
         self,
         train_size: float = 0.8,
-        n_classes: int = 4,
+        n_classes: int = 10,
         batch_size: int = 32,
-        reduction_rate: int = 5,
+        reduction_rate: int = 1,
     ):
         self.rootdir = "./data"
         self.train_size = train_size
@@ -107,7 +107,7 @@ class Container:
         self.train_loader = train_loader
         self.validation_loader = val_loader
         self.test_loader = test_loader
-        
+
         self.dataset_summary = {}
         self.dataset_summary["train_set_size"] = len(train_loader.dataset)
         self.dataset_summary["test_set_size"] = len(test_loader.dataset)
