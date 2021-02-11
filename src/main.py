@@ -77,16 +77,16 @@ if __name__ == "__main__":
         val_loader=container.validation_loader,
     )
     # Plot training curves
-    plot_training_curves(
-        "loss",
-        history,
-        f"./logs/{learner.model_name}/training_curves/loss.png",
-    )
-    plot_training_curves(
-        "accuracy",
-        history,
-        f"./logs/{learner.model_name}/training_curves/accuracy.png",
-    )
+    # plot_training_curves(
+    #     "loss",
+    #     history,
+    #     f"./logs/{learner.model_name}/training_curves/loss.png",
+    # )
+    # plot_training_curves(
+    #     "accuracy",
+    #     history,
+    #     f"./logs/{learner.model_name}/training_curves/accuracy.png",
+    # )
 
     train_outputs, train_labels, train_loss = learner.evaluate(
         container.train_loader

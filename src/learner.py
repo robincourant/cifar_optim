@@ -32,10 +32,10 @@ class Learner:
             weight_decay=weight_decay,
             momentum=momentum,
         )
-        self.lr_scheduler = optim.lr_scheduler.StepLR(
-            self.optimizer, step_size=5, gamma=0.9
-        )
-        self.n_early_stopping = 3
+        # self.lr_scheduler = optim.lr_scheduler.StepLR(
+        # self.optimizer, step_size=5, gamma=0.9
+        # )
+        self.n_early_stopping = 10
 
         self.model_name = (
             f"{self.net.name}_lr{learning_rate}_wd{weight_decay}_m{momentum}"
@@ -57,6 +57,12 @@ class Learner:
         """
         history = defaultdict(list)
         best_accuracy = -1
+
+        # cosine learning rate scheduler
+        self.lr_scheduler = optim.lr_scheduler.CosineAnnealingLR(
+            self.optimizer, T_max=n_epochs
+        )
+
         for epoch in range(n_epochs):
             self.current_epoch = epoch
             print(f"epoch: {epoch + 1}/{n_epochs}")
