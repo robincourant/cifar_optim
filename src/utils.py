@@ -63,6 +63,6 @@ def plot_training_curves(metric: str, history: pd.DataFrame, path: str):
 def get_accuracy(outputs: torch.Tensor, labels: torch.Tensor) -> float:
     """Compute accuracy from output probabiliies."""
     _, predictions = torch.max(outputs, 1)
-    accuracy = (predictions == labels).sum() / predictions.size(0)
+    accuracy = ((predictions == labels).sum() / predictions.size(0)).item()
 
     return accuracy
