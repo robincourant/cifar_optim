@@ -3,6 +3,7 @@ import argparse
 from data_processing import Container
 from learner import Learner
 from models import NaiveConvNet, PreActResNet, ResNet18
+from quantizer import BinaryQuantizer, HalfQuantizer
 from utils import get_accuracy, plot_training_curves
 
 if __name__ == "__main__":
@@ -42,6 +43,14 @@ if __name__ == "__main__":
     parser.add_argument(
         "--momentum", "-m", type=float, default=1e-3, help="Momentum value"
     )
+    parser.add_argument(
+        "--quantizer",
+        "-q",
+        type=str,
+        default=None,
+        choices=["half", "binary"],
+        help="Quantizer to use",
+    )
     args = parser.parse_args()
 
     # Load and process datasets
@@ -61,12 +70,23 @@ if __name__ == "__main__":
     elif model_name == "pretrained_resnet18":
         net = ResNet18(n_classes=container.n_classes)
 
+    quantizer_name = args.quantizer
+    if quantizer_name == "half":
+        net = HalfQuantizer(net)
+    if quantizer_name == "binary":
+        net = BinaryQuantizer(net)
+
     net_params = {
         "learning_rate": args.learning_rate,
         "momentum": args.momentum,
         "weight_decay": args.weight_decay,
     }
     learner = Learner(net, **net_params)
+
+    assert (learner.device == "cuda:0") and (
+        quantizer_name != "half"
+    ), "Half quantizer cannot be used without CUDA"
+
     learner.get_summary((3, 32, 32))
     print("\n")
 
