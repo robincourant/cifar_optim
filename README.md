@@ -22,3 +22,10 @@ To monitor metrics with `tensorboard`:
 ```
 tensorboard --logdir=logs
 ```
+
+To monitor metrics with `tensorboard.dev` (online):
+```
+tensorboard dev upload --logdir logs  # Load a directory
+tensorboard dev list  # Get experiment list (especially IDs)
+tensorboard dev delete --experiment_id EXPERIMENT_ID # Delete an experiement
+```
