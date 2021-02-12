@@ -5,8 +5,8 @@ import numpy as np
 class BinaryQuantizer(nn.Module):
     def __init__(self, net):
         super(BinaryQuantizer, self).__init__()
-        self.name = net.name
         self.quantizer = "binary"
+        self.name = "_".join([net.name, self.quantizer])
         n_conv_linear = 0
         for m in net.modules():
             if isinstance(m, nn.Conv2d) or isinstance(m, nn.Linear):
@@ -69,8 +69,8 @@ class BinaryQuantizer(nn.Module):
 class HalfQuantizer(nn.Module):
     def __init__(self, net):
         super(HalfQuantizer, self).__init__()
-        self.name = net.name
         self.quantizer = "half"
+        self.name = "_".join([net.name, self.quantizer])
         self._net = net.half()
 
     def forward(self, x):
