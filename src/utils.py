@@ -1,5 +1,6 @@
 import os
 import sys
+from time import time, strftime, gmtime
 from typing import Iterable
 
 import matplotlib.pyplot as plt
@@ -11,19 +12,24 @@ import torch
 def progressbar(to_progress: Iterable, n_steps=100, length=60):
     """Display a progress bar when iterating `to_progress`."""
 
-    def show(k):
+    def show(k: int, cum_time: int):
         """Display the k-th state of a progress bar."""
         x = int(length * k / n_steps)
+        avg_time_step = strftime("%H:%M:%S", gmtime(cum_time))
+        approx_total_time = strftime("%H:%M:%S", gmtime(n_steps * cum_time))
         sys.stdout.write(
             f"[{'=' * x}{'>' * int(x != length)}{'.' * (length - x - 1)}]"
-            + f"{k}/{n_steps}\r",
+            + f"{k}/{n_steps} ETA: {avg_time_step}/{approx_total_time}\r",
         )
         sys.stdout.flush()
 
-    show(0)
+    cum_time = 0
+    show(0, cum_time)
     for k, item in enumerate(to_progress):
+        t0 = time()
         yield item
-        show(k + 1)
+        cum_time += time() - t0
+        show(k + 1, cum_time)
     sys.stdout.write("\n")
     sys.stdout.flush()
 
