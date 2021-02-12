@@ -35,7 +35,8 @@ class Learner:
             weight_decay=weight_decay,
             momentum=momentum,
         )
-        self.n_early_stopping = 10
+        self.n_early_stopping = 4
+        self.early_stopping_delta = 0.8
 
         self.model_name = (
             f"{self.net.name}_lr{learning_rate}_wd{weight_decay}_m{momentum}"
@@ -111,7 +112,7 @@ class Learner:
 
             # Early stopping
             if (self.current_epoch >= self.n_early_stopping) and (
-                history["val_loss"][-1]
+                history["val_loss"][-1] - self.early_stopping_delta
                 > history["val_loss"][-self.n_early_stopping]
             ):
                 print("Early stopping criterion reached")
