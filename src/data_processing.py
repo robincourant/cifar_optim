@@ -11,12 +11,13 @@ import torchvision.transforms as transforms
 class Container:
     def __init__(
         self,
+        rootdir: str = ".",
         train_size: float = 0.8,
         n_classes: int = 10,
         batch_size: int = 32,
         reduction_rate: int = 1,
     ):
-        self.rootdir = "./data"
+        self.rootdir = rootdir
         self.train_size = train_size
         self.n_classes = n_classes  # Number of classes to keep
         self.reduction_rate = (
@@ -69,13 +70,13 @@ class Container:
         """Load a dataset given a train and test data transformers."""
         # Load and transform the train and test sets
         train_set = CIFAR10(
-            self.rootdir,
+            f"{self.rootdir}/data",
             train=True,
             download=True,
             transform=train_data_transformer,
         )
         test_set = CIFAR10(
-            self.rootdir,
+            f"{self.rootdir}/data",
             train=False,
             download=True,
             transform=test_data_transformer,
@@ -105,7 +106,7 @@ class Container:
         test_loader = DataLoader(test_subset, batch_size=self.batch_size)
 
         self.train_loader = train_loader
-        self.validation_loader = val_loader
+        self.val_loader = val_loader
         self.test_loader = test_loader
 
         print("\nDatasets summary:")

@@ -21,7 +21,14 @@ if __name__ == "__main__":
         help="Model to train",
     )
     parser.add_argument(
-        "--epochs", type=int, default=5, help="Number of epochs"
+        "--rootdir",
+        "-d",
+        type=str,
+        default=".",
+        help="Path to storing directory",
+    )
+    parser.add_argument(
+        "--epochs", "-e", type=int, default=5, help="Number of epochs"
     )
     parser.add_argument(
         "--batch-size", "-bs", type=int, default=32, help="Batch size"
@@ -54,7 +61,7 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
     # Load and process datasets
-    container = Container(batch_size=args.batch_size)
+    container = Container(rootdir=args.rootdir, batch_size=args.batch_size)
     dataset_name = args.dataset
     if dataset_name == "cifar_scratch":
         container.load_scratch_dataset()
@@ -85,33 +92,30 @@ if __name__ == "__main__":
         "momentum": args.momentum,
         "weight_decay": args.weight_decay,
     }
-    learner = Learner(net, **net_params)
+    learner = Learner(container, net, **net_params)
 
     assert not (
         (learner.device == "cuda:0") and (quantizer_name != "half")
     ), "Half quantizer cannot be used without CUDA"
 
     print("\n")
-    learner.get_summary(container.input_shape)
+    learner.get_model_summary()
     print("\n")
 
     # Fit the model
-    history = learner.fit(
-        n_epochs=args.epochs,
-        train_loader=container.train_loader,
-        val_loader=container.validation_loader,
-    )
+    history = learner.fit(n_epochs=args.epochs)
 
     # Plot training curves
+    log_dir = f"{container.rootdir}/logs/{learner.model_name}"
     plot_training_curves(
         "loss",
         history,
-        f"./logs/{learner.model_name}/training_curves/loss.png",
+        f"{log_dir}/training_curves/loss.png",
     )
     plot_training_curves(
         "accuracy",
         history,
-        f"./logs/{learner.model_name}/training_curves/accuracy.png",
+        f"{log_dir}/training_curves/accuracy.png",
     )
 
     train_outputs, train_labels, train_loss = learner.evaluate(

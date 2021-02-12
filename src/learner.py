@@ -11,11 +11,13 @@ from torch.utils.tensorboard import SummaryWriter
 from torchsummary import summary
 
 from utils import get_accuracy, progressbar
+from data_processing import Container
 
 
 class Learner:
     def __init__(
         self,
+        container: Container,
         net: nn.Module,
         learning_rate: float = 0.001,
         weight_decay: float = 5e-4,
@@ -24,6 +26,7 @@ class Learner:
         self.device = torch.device(
             "cuda:0" if torch.cuda.is_available() else "cpu"
         )
+        self.container = container
         self.net = net.to(self.device)
         self.criterion = nn.CrossEntropyLoss()
         self.optimizer = optim.SGD(
@@ -32,21 +35,18 @@ class Learner:
             weight_decay=weight_decay,
             momentum=momentum,
         )
-        # self.lr_scheduler = optim.lr_scheduler.StepLR(
-        # self.optimizer, step_size=5, gamma=0.9
-        # )
         self.n_early_stopping = 10
 
         self.model_name = (
             f"{self.net.name}_lr{learning_rate}_wd{weight_decay}_m{momentum}"
         )
-        self.writer = SummaryWriter(f"logs/{self.model_name}")
+        self.writer = SummaryWriter(
+            f"{self.container.rootdir}/logs/{self.model_name}"
+        )
 
     def fit(
         self,
         n_epochs: int,
-        train_loader: DataLoader,
-        val_loader: DataLoader,
     ) -> pd.DataFrame:
         """Train the model and compute metrics at each epoch.
 
@@ -58,7 +58,7 @@ class Learner:
         history = defaultdict(list)
         best_accuracy = -1
 
-        # cosine learning rate scheduler
+        # Cosine learning rate scheduler
         self.lr_scheduler = optim.lr_scheduler.CosineAnnealingLR(
             self.optimizer, T_max=n_epochs
         )
@@ -68,7 +68,7 @@ class Learner:
             print(f"epoch: {epoch + 1}/{n_epochs}")
 
             # Training step
-            _, _, _ = self._train(train_loader)
+            _, _, _ = self._train(self.container.train_loader)
             # Update the learning rate
             self.lr_scheduler.step()
 
@@ -76,9 +76,11 @@ class Learner:
             if self.net.quantizer == "binary":
                 self.net.binarize_params()
             train_outputs, train_labels, train_loss = self.evaluate(
-                train_loader
+                self.container.train_loader
             )
-            val_outputs, val_labels, val_loss = self.evaluate(val_loader)
+            val_outputs, val_labels, val_loss = self.evaluate(
+                self.container.val_loader
+            )
             # Compute training and validation accuracy
             train_accuracy = get_accuracy(train_outputs, train_labels)
             val_accuracy = get_accuracy(val_outputs, val_labels)
@@ -119,7 +121,9 @@ class Learner:
         history_df.index.name = "epochs"
         self.writer.close()
         # Load the best model
-        self.net = self.load(f"./models/{self.model_name}.pth")
+        self.net = self.load(
+            f"{self.container.rootdir}/models/{self.model_name}.pth"
+        )
 
         return history_df
 
@@ -229,9 +233,9 @@ class Learner:
 
     def _save(self):
         """Save a model."""
-        if not os.path.exists("./models"):
-            os.makedirs("./models")
-        saving_path = f"./models/{self.model_name}.pth"
+        if not os.path.exists(f"{self.container.rootdir}/models"):
+            os.makedirs(f"{self.container.rootdir}/models")
+        saving_path = f"{self.container.rootdir}/models/{self.model_name}.pth"
         torch.save(self.net, saving_path)
         print("Best model saved")
 
@@ -239,6 +243,6 @@ class Learner:
         """TODO: Load a saved model."""
         return torch.load(model_path)
 
-    def get_summary(self, input_size: Tuple[int, int, int]):
+    def get_model_summary(self):
         """Print summary of the model."""
-        summary(self.net, input_size)
+        summary(self.net, self.container.input_shape)
