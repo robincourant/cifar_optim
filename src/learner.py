@@ -91,7 +91,7 @@ class Learner:
             history["accuracy"].append(train_accuracy)
             history["val_loss"].append(val_loss)
             history["val_accuracy"].append(val_accuracy)
-            self._write_summary(
+            self._write_logs(
                 train_loss, train_accuracy, val_loss, val_accuracy
             )
 
@@ -128,14 +128,14 @@ class Learner:
 
         return history_df
 
-    def _write_summary(
+    def _write_logs(
         self,
         train_loss: float,
         train_accuracy: float,
         val_loss: float,
         val_accuracy: float,
     ):
-        """Write training and vlaidation loss in tensoboard."""
+        """Write training and validation loss in tensorboard."""
         self.writer.add_scalar(
             "loss/train_epoch",
             train_loss,
@@ -156,6 +156,15 @@ class Learner:
             val_accuracy,
             self.current_epoch,
         )
+
+        # Save trainable layer's weight distributions
+        for layer_name, layer_params in self.net.named_parameters():
+            layer_name = layer_name.split(".")
+            if (layer_name[-1] == "weight") and (layer_params.requires_grad):
+                self.writer.add_histogram(
+                    f"histograms/{layer_name[0]}",
+                    layer_params.data,
+                )
 
         self.writer.flush()
 

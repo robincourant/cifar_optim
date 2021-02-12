@@ -34,6 +34,9 @@ if __name__ == "__main__":
         "--batch-size", "-bs", type=int, default=32, help="Batch size"
     )
     parser.add_argument(
+        "--reduction-rate", "-r", type=int, default=1, help="Reduction rate"
+    )
+    parser.add_argument(
         "--learning-rate",
         "-lr",
         type=float,
@@ -61,7 +64,11 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
     # Load and process datasets
-    container = Container(rootdir=args.rootdir, batch_size=args.batch_size)
+    container = Container(
+        rootdir=args.rootdir,
+        batch_size=args.batch_size,
+        reduction_rate=args.reduction_rate,
+    )
     dataset_name = args.dataset
     if dataset_name == "cifar_scratch":
         container.load_scratch_dataset()
