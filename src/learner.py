@@ -249,10 +249,18 @@ class Learner:
         torch.save(self.net, saving_path)
         print("Best model saved")
 
-    def load(self, model_path: str):
+    def load(
+        self,
+        model_path: str = "current",
+    ):
         """TODO: Load a saved model."""
+        if model_path == "current":
+            model_path = (
+                f"{self.container.rootdir}/models/{self.model_name}.pth"
+            )
         return torch.load(model_path)
 
     def get_model_summary(self):
         """Print summary of the model."""
         summary(self.net, self.container.input_shape)
+        print("\n")

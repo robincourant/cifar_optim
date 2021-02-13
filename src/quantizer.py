@@ -7,27 +7,30 @@ class BinaryQuantizer(nn.Module):
         super(BinaryQuantizer, self).__init__()
         self.quantizer = "binary"
         self.name = "_".join([net.name, self.quantizer])
+        self._net = net
+
         n_conv_linear = 0
-        for m in net.modules():
+        for m in self._net.modules():
             if isinstance(m, nn.Conv2d) or isinstance(m, nn.Linear):
                 n_conv_linear += 1
+
         self.bin_range = (
             np.linspace(0, n_conv_linear - 1, n_conv_linear)
             .astype("int")
             .tolist()
         )
+
         self.num_of_params = len(self.bin_range)
         self.saved_params = []
         self.target_modules = []
 
-        self._net = net
-
         index = -1
-        for m in net.modules():
+        for m in self._net.modules():
             if isinstance(m, nn.Conv2d) or isinstance(m, nn.Linear):
                 index += 1
                 if index in self.bin_range:
-                    tmp = m.weight.data.clone()
+                    # tmp = m.weight.data.clone()
+                    tmp = m.weight.clone()
                     self.saved_params.append(tmp)
                     self.target_modules.append(m.weight)
 
@@ -43,10 +46,8 @@ class BinaryQuantizer(nn.Module):
         # Save the current full precision parameters
         self.save_params()
 
-        binarized_target_modules = []
         for target_module in self.target_modules:
-            binarized_target_modules.append((target_module >= 0) * 2 - 1)
-        self.target_modules = binarized_target_modules
+            target_module.data = (target_module.data >= 0) * 2 - 1
 
     def restore_params(self):
         """Restore previous model's target modules."""
@@ -55,10 +56,11 @@ class BinaryQuantizer(nn.Module):
 
     def clip_params(self):
         """Clip all parameters to the range [-1,1]."""
-        clipped_target_modules = []
+        # clipped_target_modules = []
         for target_module in self.target_modules:
-            clipped_target_modules.append(self.clipper(target_module))
-        self.target_modules = clipped_target_modules
+            # clipped_target_modules.append(self.clipper(target_module))
+            target_module.data = self.clipper(target_module.data)
+        # self.target_modules = clipped_target_modules
 
     def forward(self, x):
         """Perform the forward propagation given a sample."""
