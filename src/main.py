@@ -3,6 +3,7 @@ import argparse
 from data_processing import Container
 from learner import Learner
 from models import NaiveConvNet, PreActResNet, ResNet18
+from quantizer import BinaryQuantizer, HalfQuantizer
 from utils import get_accuracy, plot_training_curves
 
 if __name__ == "__main__":
@@ -10,7 +11,7 @@ if __name__ == "__main__":
     parser.add_argument(
         "dataset",
         type=str,
-        choices=["minicifar_scratch", "minicifar_imagenet"],
+        choices=["cifar_scratch", "cifar_imagenet"],
         help="Dataset to load",
     )
     parser.add_argument(
@@ -20,10 +21,20 @@ if __name__ == "__main__":
         help="Model to train",
     )
     parser.add_argument(
-        "--epochs", type=int, default=5, help="Number of epochs"
+        "--rootdir",
+        "-d",
+        type=str,
+        default=".",
+        help="Path to storing directory",
+    )
+    parser.add_argument(
+        "--epochs", "-e", type=int, default=5, help="Number of epochs"
     )
     parser.add_argument(
         "--batch-size", "-bs", type=int, default=32, help="Batch size"
+    )
+    parser.add_argument(
+        "--reduction-rate", "-r", type=int, default=1, help="Reduction rate"
     )
     parser.add_argument(
         "--learning-rate",
@@ -42,15 +53,29 @@ if __name__ == "__main__":
     parser.add_argument(
         "--momentum", "-m", type=float, default=1e-3, help="Momentum value"
     )
+    parser.add_argument(
+        "--quantizer",
+        "-q",
+        type=str,
+        default=None,
+        choices=["half", "binary"],
+        help="Quantizer to use",
+    )
     args = parser.parse_args()
 
     # Load and process datasets
-    container = Container(batch_size=args.batch_size)
+    container = Container(
+        rootdir=args.rootdir,
+        batch_size=args.batch_size,
+        reduction_rate=args.reduction_rate,
+    )
     dataset_name = args.dataset
-    if dataset_name == "minicifar_scratch":
+    if dataset_name == "cifar_scratch":
         container.load_scratch_dataset()
-    elif dataset_name == "minicifar_imagenet":
+    elif dataset_name == "cifar_imagenet":
         container.load_imagenet_dataset()
+    else:
+        raise ValueError(f"Dataset: {dataset_name} is not known")
 
     # Initialize and train the model
     model_name = args.model
@@ -60,33 +85,45 @@ if __name__ == "__main__":
         net = PreActResNet(n_classes=container.n_classes)
     elif model_name == "pretrained_resnet18":
         net = ResNet18(n_classes=container.n_classes)
+    else:
+        raise ValueError(f"Model: {model_name} is not known")
+
+    quantizer_name = args.quantizer
+    if quantizer_name == "half":
+        net = HalfQuantizer(net)
+    if quantizer_name == "binary":
+        net = BinaryQuantizer(net)
 
     net_params = {
         "learning_rate": args.learning_rate,
         "momentum": args.momentum,
         "weight_decay": args.weight_decay,
     }
-    learner = Learner(net, **net_params)
-    learner.get_summary((3, 32, 32))
+    learner = Learner(container, net, **net_params)
+
+    assert not (
+        (learner.device == "cuda:0") and (quantizer_name != "half")
+    ), "Half quantizer cannot be used without CUDA"
+
+    print("\n")
+    learner.get_model_summary()
     print("\n")
 
     # Fit the model
-    history = learner.fit(
-        n_epochs=args.epochs,
-        train_loader=container.train_loader,
-        val_loader=container.validation_loader,
-    )
+    history = learner.fit(n_epochs=args.epochs)
+
     # Plot training curves
-    # plot_training_curves(
-    #     "loss",
-    #     history,
-    #     f"./logs/{learner.model_name}/training_curves/loss.png",
-    # )
-    # plot_training_curves(
-    #     "accuracy",
-    #     history,
-    #     f"./logs/{learner.model_name}/training_curves/accuracy.png",
-    # )
+    log_dir = f"{container.rootdir}/logs/{learner.model_name}"
+    plot_training_curves(
+        "loss",
+        history,
+        f"{log_dir}/training_curves/loss.png",
+    )
+    plot_training_curves(
+        "accuracy",
+        history,
+        f"{log_dir}/training_curves/accuracy.png",
+    )
 
     train_outputs, train_labels, train_loss = learner.evaluate(
         container.train_loader

@@ -1,19 +1,18 @@
 import torch.nn as nn
-import numpy
-from torch.autograd import Variable
+import numpy as np
 
 
 class BinaryQuantizer(nn.Module):
     def __init__(self, net):
         super(BinaryQuantizer, self).__init__()
-        self.name = net.name
         self.quantizer = "binary"
+        self.name = "_".join([net.name, self.quantizer])
         n_conv_linear = 0
         for m in net.modules():
             if isinstance(m, nn.Conv2d) or isinstance(m, nn.Linear):
                 n_conv_linear += 1
         self.bin_range = (
-            numpy.linspace(0, n_conv_linear - 1, n_conv_linear)
+            np.linspace(0, n_conv_linear - 1, n_conv_linear)
             .astype("int")
             .tolist()
         )
@@ -64,4 +63,17 @@ class BinaryQuantizer(nn.Module):
     def forward(self, x):
         """Perform the forward propagation given a sample."""
         x = self._net(x)
+        return x
+
+
+class HalfQuantizer(nn.Module):
+    def __init__(self, net):
+        super(HalfQuantizer, self).__init__()
+        self.quantizer = "half"
+        self.name = "_".join([net.name, self.quantizer])
+        self._net = net.half()
+
+    def forward(self, x):
+        """Perform the forward propagation given a sample."""
+        x = self._net(x.half())
         return x

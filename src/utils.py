@@ -1,5 +1,6 @@
 import os
 import sys
+from time import time, strftime, gmtime
 from typing import Iterable
 
 import matplotlib.pyplot as plt
@@ -11,19 +12,27 @@ import torch
 def progressbar(to_progress: Iterable, n_steps=100, length=60):
     """Display a progress bar when iterating `to_progress`."""
 
-    def show(k):
+    def show(k: int, cumulative_time: int):
         """Display the k-th state of a progress bar."""
         x = int(length * k / n_steps)
+
+        current_step_time = strftime("%H:%M:%S", gmtime(cumulative_time))
+        approx_total_time = strftime(
+            "%H:%M:%S", gmtime((n_steps * cumulative_time) / (k + 1))
+        )
         sys.stdout.write(
             f"[{'=' * x}{'>' * int(x != length)}{'.' * (length - x - 1)}]"
-            + f"{k}/{n_steps}\r",
+            + f"{k}/{n_steps} ETA: {current_step_time}/{approx_total_time}\r",
         )
         sys.stdout.flush()
 
-    show(0)
+    cumulative_time = 0
+    show(0, cumulative_time)
     for k, item in enumerate(to_progress):
+        t0 = time()
         yield item
-        show(k + 1)
+        cumulative_time += time() - t0
+        show(k + 1, cumulative_time)
     sys.stdout.write("\n")
     sys.stdout.flush()
 
@@ -63,6 +72,6 @@ def plot_training_curves(metric: str, history: pd.DataFrame, path: str):
 def get_accuracy(outputs: torch.Tensor, labels: torch.Tensor) -> float:
     """Compute accuracy from output probabiliies."""
     _, predictions = torch.max(outputs, 1)
-    accuracy = (predictions == labels).sum() / predictions.size(0)
+    accuracy = ((predictions == labels).sum() / predictions.size(0)).item()
 
     return accuracy
