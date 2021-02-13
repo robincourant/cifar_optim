@@ -79,24 +79,24 @@ class PreActResNet(nn.Module):
         super(PreActResNet, self).__init__()
         self.quantizer = None
         self.name = "preact_resnet"
-        self.in_planes = 64
+        self.in_planes = int(64 / r)
 
         self.conv1 = nn.Conv2d(
-            3, 64, kernel_size=3, stride=1, padding=1, bias=False
+            3, int(64 / r), kernel_size=3, stride=1, padding=1, bias=False
         )
         self.layer1 = self._make_layer(
-            block, int(r * 64), num_blocks[0], stride=1
+            block, int(64 / r), num_blocks[0], stride=1
         )
         self.layer2 = self._make_layer(
-            block, int(r * 128), num_blocks[1], stride=2
+            block, int(128 / r), num_blocks[1], stride=2
         )
         self.layer3 = self._make_layer(
-            block, int(r * 256), num_blocks[2], stride=2
+            block, int(256 / r), num_blocks[2], stride=2
         )
         self.layer4 = self._make_layer(
-            block, int(r * 512), num_blocks[3], stride=2
+            block, int(512 / r), num_blocks[3], stride=2
         )
-        self.linear = nn.Linear(int(r * 512) * block.expansion, n_classes)
+        self.linear = nn.Linear(int(512 / r) * block.expansion, n_classes)
 
     def _make_layer(self, block, planes, num_blocks, stride):
         strides = [stride] + [1] * (num_blocks - 1)
