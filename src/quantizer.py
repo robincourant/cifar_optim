@@ -2,15 +2,15 @@ import torch.nn as nn
 import numpy as np
 
 
-class BinaryQuantizer(nn.Module):
+class BinaryQuantizer:
     def __init__(self, net):
-        super(BinaryQuantizer, self).__init__()
-        self.quantizer = "binary"
-        self.name = "_".join([net.name, self.quantizer])
-        self._net = net
+        # super(BinaryQuantizer, self).__init__()
+        self.quantizer_name = "binary"
+        self.name = "_".join([net.name, self.quantizer_name])
+        self.net = net
 
         n_conv_linear = 0
-        for m in self._net.modules():
+        for m in self.net.modules():
             if isinstance(m, nn.Conv2d) or isinstance(m, nn.Linear):
                 n_conv_linear += 1
 
@@ -25,7 +25,7 @@ class BinaryQuantizer(nn.Module):
         self.target_modules = []
 
         index = -1
-        for m in self._net.modules():
+        for m in self.net.modules():
             if isinstance(m, nn.Conv2d) or isinstance(m, nn.Linear):
                 index += 1
                 if index in self.bin_range:
@@ -40,6 +40,7 @@ class BinaryQuantizer(nn.Module):
         """Save current model's target modules."""
         for index in range(self.num_of_params):
             self.saved_params[index].copy_(self.target_modules[index].data)
+        return self.net
 
     def binarize_params(self):
         """Binarize the weights in the net."""
@@ -47,7 +48,9 @@ class BinaryQuantizer(nn.Module):
         self.save_params()
 
         for target_module in self.target_modules:
-            target_module.data = (target_module.data >= 0) * 2 - 1
+            target_module.data = ((target_module.data >= 0) * 2 - 1).float()
+
+        return self.net
 
     def restore_params(self):
         """Restore previous model's target modules."""
@@ -61,18 +64,30 @@ class BinaryQuantizer(nn.Module):
             # clipped_target_modules.append(self.clipper(target_module))
             target_module.data = self.clipper(target_module.data)
         # self.target_modules = clipped_target_modules
+        return self.net
+
+    def get_bool_params(self):
+        for target_module in self.target_modules:
+            target_module.data = target_module.data > 0
+            target_module.requires_grad = False
+        return self.net
+
+    def get_float_params(self):
+        for target_module in self.target_modules:
+            target_module.data = (target_module.data * 2 - 1).float()
+            target_module.requires_grad = True
+        return self.net
 
     def forward(self, x):
         """Perform the forward propagation given a sample."""
-        x = self._net(x)
+        x = self.net(x)
         return x
 
 
-class HalfQuantizer(nn.Module):
+class HalfQuantizer:
     def __init__(self, net):
-        super(HalfQuantizer, self).__init__()
-        self.quantizer = "half"
-        self.name = "_".join([net.name, self.quantizer])
+        self.quantizer_name = "half"
+        self.name = "_".join([net.name, self.quantizer_name])
         self._net = net.half()
 
     def forward(self, x):

@@ -9,7 +9,7 @@ class NaiveConvNet(nn.Module):
 
     def __init__(self, n_classes=4):
         super(NaiveConvNet, self).__init__()
-        self.quantizer = None
+        self.quantizer_name = None
         self.name = "naive_convnet"
         self.n_classes = n_classes
 
@@ -77,7 +77,7 @@ class PreActResNet(nn.Module):
         self, block=PreActBlock, num_blocks=[2, 2, 2, 2], n_classes=4, r=1
     ):
         super(PreActResNet, self).__init__()
-        self.quantizer = None
+        self.quantizer_name = None
         self.name = "preact_resnet"
         self.in_planes = int(64 / r)
 

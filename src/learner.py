@@ -27,7 +27,11 @@ class Learner:
             "cuda:0" if torch.cuda.is_available() else "cpu"
         )
         self.container = container
-        self.net = net.to(self.device)
+        self.quantizer = net
+        if net.quantizer_name == None:
+            self.net = net.to(self.device)
+        else:
+            self.net = self.quantizer.net.to(self.device)
         self.criterion = nn.CrossEntropyLoss()
         self.optimizer = optim.SGD(
             self.net.parameters(),
@@ -39,7 +43,7 @@ class Learner:
         self.early_stopping_delta = 0.8
 
         self.model_name = (
-            f"{self.net.name}_lr{learning_rate}_wd{weight_decay}_m{momentum}"
+            f"{net.name}_lr{learning_rate}_wd{weight_decay}_m{momentum}"
         )
         self.writer = SummaryWriter(
             f"{self.container.rootdir}/logs/{self.model_name}"
@@ -70,12 +74,13 @@ class Learner:
 
             # Training step
             _, _, _ = self._train(self.container.train_loader)
+
             # Update the learning rate
             self.lr_scheduler.step()
 
             # Evaluation step
-            if self.net.quantizer == "binary":
-                self.net.binarize_params()
+            if self.quantizer.quantizer_name == "binary":
+                self.quantizer.binarize_params()
             train_outputs, train_labels, train_loss = self.evaluate(
                 self.container.train_loader
             )
@@ -100,8 +105,8 @@ class Learner:
                 best_accuracy = val_accuracy
                 self._save()
 
-            if self.net.quantizer == "binary":
-                self.net.restore_params()
+            if self.quantizer.quantizer_name == "binary":
+                self.quantizer.restore_params()
 
             # Print statistics at the end of each epoch
             print(
@@ -122,9 +127,9 @@ class Learner:
         history_df.index.name = "epochs"
         self.writer.close()
         # Load the best model
-        self.net = self.load(
-            f"{self.container.rootdir}/models/{self.model_name}.pth"
-        )
+        self.net = self.load()
+        # f"{self.container.rootdir}/models/{self.model_name}.pth"
+        # )
 
         return history_df
 
@@ -186,19 +191,24 @@ class Learner:
             labels = labels.to(self.device)
             # Reset gradients
             self.optimizer.zero_grad()
-            if self.net.quantizer == "binary":
-                self.net.binarize_params()
+
+            if self.quantizer.quantizer_name == "binary":
+                self.quantizer.binarize_params()
             # Perform forward propagation
             outputs = self.net(inputs)
-            if self.net.quantizer == "binary":
-                self.net.restore_params()
+
             # Compute loss and perform back propagation
             loss = self.criterion(outputs, labels)
             loss.backward()
+
+            if self.quantizer.quantizer_name == "binary":
+                self.quantizer.restore_params()
+
             # Perform the weights' optimization
             self.optimizer.step()
-            if self.net.quantizer == "binary":
-                self.net.clip_params()
+
+            if self.quantizer.quantizer_name == "binary":
+                self.quantizer.clip_params()
 
             train_outputs.append(outputs)
             train_labels.append(labels)
@@ -246,6 +256,8 @@ class Learner:
         if not os.path.exists(f"{self.container.rootdir}/models"):
             os.makedirs(f"{self.container.rootdir}/models")
         saving_path = f"{self.container.rootdir}/models/{self.model_name}.pth"
+        if self.quantizer.quantizer_name == "binary":
+            self.quantizer.get_bool_params()
         torch.save(self.net, saving_path)
         print("Best model saved")
 
@@ -258,7 +270,10 @@ class Learner:
             model_path = (
                 f"{self.container.rootdir}/models/{self.model_name}.pth"
             )
-        return torch.load(model_path)
+        net = torch.load(model_path)
+        if self.quantizer.quantizer_name == "binary":
+            self.quantizer.get_float_params()
+        return net
 
     def get_model_summary(self):
         """Print summary of the model."""
