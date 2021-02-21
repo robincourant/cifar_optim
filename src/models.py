@@ -70,7 +70,8 @@ class PreActBlock(nn.Module):
         x = F.relu(self.bn1(x))
         shortcut = self.shortcut(x) if hasattr(self, "shortcut") else x
         x = self.conv1(x)
-        x = self.conv2(F.relu(self.bn2(x)))
+        x = F.relu(self.bn2(x))
+        x = self.conv2(x)
         x += shortcut
         return x
 
