@@ -22,6 +22,7 @@ class Learner:
         learning_rate: float = 0.001,
         weight_decay: float = 5e-4,
         momentum: float = 0.9,
+        early_stopping=None,
     ):
         self.device = torch.device(
             "cuda:0" if torch.cuda.is_available() else "cpu"
@@ -39,7 +40,7 @@ class Learner:
             weight_decay=weight_decay,
             momentum=momentum,
         )
-        self.n_early_stopping = 4
+        self.n_early_stopping = early_stopping
         self.early_stopping_delta = 0.8
 
         self.model_name = (
@@ -67,6 +68,8 @@ class Learner:
         self.lr_scheduler = optim.lr_scheduler.CosineAnnealingLR(
             self.optimizer, T_max=n_epochs
         )
+        # Step learning rate scheduler
+        # self.lr_scheduler = optim.lr_scheduler.StepLR(self.optimizer, 15, 0.2)
 
         for epoch in range(n_epochs):
             self.current_epoch = epoch
@@ -116,12 +119,13 @@ class Learner:
             )
 
             # Early stopping
-            if (self.current_epoch >= self.n_early_stopping) and (
-                history["val_loss"][-1] - self.early_stopping_delta
-                > history["val_loss"][-self.n_early_stopping]
-            ):
-                print("Early stopping criterion reached")
-                break
+            if self.n_early_stopping:
+                if (self.current_epoch >= self.n_early_stopping) and (
+                    history["val_loss"][-1] - self.early_stopping_delta
+                    > history["val_loss"][-self.n_early_stopping]
+                ):
+                    print("Early stopping criterion reached")
+                    break
 
         history_df = pd.DataFrame(history)
         history_df.index.name = "epochs"
@@ -195,21 +199,17 @@ class Learner:
             if self.quantizer.quantizer_name == "binary":
                 self.quantizer.binarize_params()
             # Perform forward propagation
-            outputs = self.net(inputs)
-
+            outputs = self.quantizer.forward(inputs)
             # Compute loss and perform back propagation
             loss = self.criterion(outputs, labels)
             loss.backward()
 
             if self.quantizer.quantizer_name == "binary":
                 self.quantizer.restore_params()
-
             # Perform the weights' optimization
             self.optimizer.step()
-
             if self.quantizer.quantizer_name == "binary":
                 self.quantizer.clip_params()
-
             train_outputs.append(outputs)
             train_labels.append(labels)
             train_loss.append(loss)
@@ -240,6 +240,8 @@ class Learner:
             for inputs, labels in data_loader:
                 inputs = inputs.to(self.device)
                 labels = labels.to(self.device)
+                if self.quantizer.quantizer_name == "half":
+                    inputs = inputs.half()
                 outputs = self.net(inputs)
                 loss = self.criterion(outputs, labels)
 
@@ -258,7 +260,10 @@ class Learner:
         saving_path = f"{self.container.rootdir}/models/{self.model_name}.pth"
         if self.quantizer.quantizer_name == "binary":
             self.quantizer.get_bool_params()
-        torch.save(self.net, saving_path)
+            torch.save(self.net, saving_path)
+            self.quantizer.get_float_params()
+        else:
+            torch.save(self.net, saving_path)
         print("Best model saved")
 
     def load(
@@ -271,8 +276,8 @@ class Learner:
                 f"{self.container.rootdir}/models/{self.model_name}.pth"
             )
         net = torch.load(model_path)
-        if self.quantizer.quantizer_name == "binary":
-            self.quantizer.get_float_params()
+        # if self.quantizer.quantizer_name == "binary":
+        # self.quantizer.get_float_params()
         return net
 
     def get_model_summary(self):
