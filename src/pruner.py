@@ -28,6 +28,7 @@ class Pruner:
     ):
         self.learner = learner
         self.net = self.learner.net
+        self.device = self.learner.device
 
     def get_sparsity(self):
         """Print sparsity of each layer and model global sparsity."""
@@ -107,13 +108,14 @@ class StructuredPruner(Pruner):
         n_filters_to_keep = indices.shape[0] - n_filters_to_remove
         indices_to_keep = indices[:n_filters_to_keep].tolist()
 
-        return indices_to_keep
+        return sorted(indices_to_keep)
 
     @staticmethod
     def _prune_conv(
         conv: nn.Module,
         indices_to_keep: List[int],
         io_dim: int,
+        device: str,
     ) -> nn.Module:
         """
         Create a new convolutional layer from an original one but remove
@@ -132,7 +134,9 @@ class StructuredPruner(Pruner):
         )
         # Update weight and bias of the pruned layer
         pruned_conv.weight.data = torch.index_select(
-            conv.weight.data, io_dim, torch.tensor(indices_to_keep)
+            conv.weight.data,
+            io_dim,
+            torch.tensor(indices_to_keep).to(device),
         )
         # The bias is not modified if it is the input which is modified
         if conv.bias is not None:
@@ -140,7 +144,9 @@ class StructuredPruner(Pruner):
                 pruned_conv.bias.data = conv.bias.data
             else:
                 pruned_conv.bias.data = torch.index_select(
-                    conv.bias.data, io_dim, torch.tensor(indices_to_keep)
+                    conv.bias.data,
+                    io_dim,
+                    torch.tensor(indices_to_keep).to(device),
                 )
         else:
             pruned_conv.bias = conv.bias
@@ -152,6 +158,7 @@ class StructuredPruner(Pruner):
         norm: nn.Module,
         indices_to_keep: List[int],
         io_dim: int,
+        device: str,
     ) -> nn.Module:
         """
         Create a new batch norm layer from an original one but remove
@@ -165,18 +172,22 @@ class StructuredPruner(Pruner):
             track_running_stats=norm.track_running_stats,
         )
         pruned_norm.weight.data = torch.index_select(
-            norm.weight.data, 0, torch.tensor(indices_to_keep)
+            norm.weight.data, 0, torch.tensor(indices_to_keep).to(device)
         )
         pruned_norm.bias.data = torch.index_select(
-            norm.bias.data, 0, torch.tensor(indices_to_keep)
+            norm.bias.data, 0, torch.tensor(indices_to_keep).to(device)
         )
 
         if norm.track_running_stats:
             pruned_norm.running_mean.data = torch.index_select(
-                norm.running_mean.data, 0, torch.tensor(indices_to_keep)
+                norm.running_mean.data,
+                0,
+                torch.tensor(indices_to_keep).to(device),
             )
             pruned_norm.running_var.data = torch.index_select(
-                norm.running_var.data, 0, torch.tensor(indices_to_keep)
+                norm.running_var.data,
+                0,
+                torch.tensor(indices_to_keep).to(device),
             )
 
         return pruned_norm
@@ -186,6 +197,7 @@ class StructuredPruner(Pruner):
         linear: nn.Module,
         indices_to_keep: List[int],
         io_dim: int,
+        device: str,
     ) -> nn.Module:
         """
         Create a new linear layer from an original one but remove
@@ -197,7 +209,9 @@ class StructuredPruner(Pruner):
             bias=linear.bias is not None,
         )
         pruned_linear.weight.data = torch.index_select(
-            linear.weight.data, io_dim, torch.tensor(indices_to_keep)
+            linear.weight.data,
+            io_dim,
+            torch.tensor(indices_to_keep).to(device),
         )
         pruned_linear.bias.data = linear.bias.data
 
@@ -234,6 +248,7 @@ class StructuredPruner(Pruner):
                         original_layer,
                         indices_to_keep,
                         prune_input,
+                        self.device,
                     )
                     # Replace the layer by the pruned layer
                     rsetattr(self.net, layer_name, pruned_layer)
@@ -250,6 +265,7 @@ class StructuredPruner(Pruner):
                         original_layer,
                         indices_to_keep,
                         prune_input,
+                        self.device,
                     )
                     # Replace the layer by the pruned layer
                     rsetattr(self.net, layer_name, pruned_layer)
@@ -266,6 +282,7 @@ class StructuredPruner(Pruner):
                     original_layer,
                     shortcut_inputs_to_keep,
                     1,
+                    self.device,
                 )
 
                 # Build a new layer without the output pruned filters
@@ -273,6 +290,7 @@ class StructuredPruner(Pruner):
                     input_pruned_layer,
                     shortcut_output_to_keep,
                     0,
+                    self.device,
                 )
                 # Replace the layer by the pruned layer
                 rsetattr(self.net, layer_name, pruned_shortcut)
@@ -284,6 +302,7 @@ class StructuredPruner(Pruner):
                     original_layer,
                     indices_to_keep,
                     prune_input,
+                    self.device,
                 )
                 rsetattr(self.net, layer_name, pruned_layer)
                 original_layer = pruned_layer
@@ -296,6 +315,7 @@ class StructuredPruner(Pruner):
                         original_layer,
                         indices_to_keep,
                         prune_input,
+                        self.device,
                     )
                     rsetattr(self.net, layer_name, pruned_layer)
                     original_layer = pruned_layer
