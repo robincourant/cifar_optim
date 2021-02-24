@@ -1,5 +1,6 @@
 from collections import defaultdict
 import os
+import sys
 from typing import Tuple
 
 import pandas as pd
@@ -10,8 +11,8 @@ from torch.utils.data import DataLoader
 from torch.utils.tensorboard import SummaryWriter
 from torchsummary import summary
 
-from utils import get_accuracy, progressbar
-from container import Container
+from src.container import Container
+from src.utils import get_accuracy, progressbar
 
 
 class Learner:
@@ -266,13 +267,13 @@ class Learner:
 
     def load(
         self,
-        model_path: str = "current",
+        model_path: str,
     ):
         """Load a saved model."""
-        if model_path == "current":
-            model_path = (
-                f"{self.container.rootdir}/models/{self.model_name}.pth"
-            )
+        # Necessary, in order to avoid an `AttributeError`
+        current_file = os.path.dirname(os.path.abspath(__file__))
+        sys.path.append(current_file)
+
         self.net = torch.load(model_path, map_location=self.device)
 
     def get_model_summary(self):

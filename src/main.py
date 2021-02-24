@@ -1,10 +1,10 @@
 import argparse
 
-from container import Container
-from learner import Learner
-from models import NaiveConvNet, PreActResNet, ResNet18
 from quantization.quantizer import BinaryQuantizer, HalfQuantizer
-from utils import get_accuracy, plot_training_curves
+from src.container import Container
+from src.learner import Learner
+from src.models import NaiveConvNet, PreActResNet, ResNet18
+from src.utils import get_accuracy, plot_training_curves
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()

@@ -75,6 +75,29 @@ def plot_training_curves(metric: str, history: pd.DataFrame, path: str):
     plt.show()
 
 
+def plot_sensitivity_curves(sensitivity_data: pd.DataFrame, path: str):
+    """Plot the pruning sensitivity for each layer for different pruning rates.
+
+    :param sensitivity_data: pruning sensitivity for different pruning rates.
+    :param path: if provided save figure at this path.
+    """
+    sns.set_context("paper", rc={"lines.linewidth": 1, "lines.markersize": 10})
+    sns.catplot(
+        x="pruning_rate",
+        y="accuracy",
+        hue="layers",
+        data=sensitivity_data,
+        kind="point",
+    )
+    if path:
+        directory_name = os.path.dirname(path)
+        if not os.path.exists(directory_name):
+            os.makedirs(directory_name)
+        plt.savefig(path)
+
+    plt.show()
+
+
 def get_accuracy(outputs: torch.Tensor, labels: torch.Tensor) -> float:
     """Compute accuracy from output probabiliies."""
     _, predictions = torch.max(outputs, 1)
