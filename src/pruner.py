@@ -88,7 +88,8 @@ class UnstructuredPruner(Pruner):
 class StructuredPruner(Pruner):
     """
     Perform a pruning by removing the lowest x% of filters across
-    the given layers to prune.
+    the given layers to prune. Inspired by:
+    https://github.com/tyui592/Pruning_filters_for_efficient_convnets
     """
 
     def __init__(self, learner: Learner):
