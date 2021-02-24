@@ -122,9 +122,7 @@ class Learner:
         history_df.index.name = "epochs"
         self.writer.close()
         # Load the best model
-        self.net = self.load(
-            f"{self.container.rootdir}/models/{self.model_name}.pth"
-        )
+        self.load(f"{self.container.rootdir}/models/{self.model_name}.pth")
 
         return history_df
 
@@ -135,7 +133,7 @@ class Learner:
         val_loss: float,
         val_accuracy: float,
     ):
-        """Write training and validation loss in tensorboard."""
+        """Write training and validation metrics in tensorboard."""
         self.writer.add_scalar(
             "loss/train_epoch",
             train_loss,
@@ -180,7 +178,7 @@ class Learner:
         self.net.train()
         train_outputs, train_labels, train_loss = [], [], []
         for step, (inputs, labels) in progressbar(
-            enumerate(train_loader), n_steps=len(train_loader)
+            enumerate(train_loader), n_steps=len(train_loader), verbose=True
         ):
             inputs = inputs.to(self.device)
             labels = labels.to(self.device)
@@ -253,12 +251,12 @@ class Learner:
         self,
         model_path: str = "current",
     ):
-        """TODO: Load a saved model."""
+        """Load a saved model."""
         if model_path == "current":
             model_path = (
                 f"{self.container.rootdir}/models/{self.model_name}.pth"
             )
-        return torch.load(model_path)
+        self.net = torch.load(model_path, map_location=self.device)
 
     def get_model_summary(self):
         """Print summary of the model."""

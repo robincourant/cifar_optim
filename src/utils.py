@@ -9,7 +9,7 @@ import seaborn as sns
 import torch
 
 
-def progressbar(to_progress: Iterable, n_steps=100, length=60):
+def progressbar(to_progress: Iterable, n_steps=100, length=60, verbose=True):
     """Display a progress bar when iterating `to_progress`."""
 
     def show(k: int, cumulative_time: int):
@@ -27,12 +27,18 @@ def progressbar(to_progress: Iterable, n_steps=100, length=60):
         sys.stdout.flush()
 
     cumulative_time = 0
-    show(0, cumulative_time)
+    if verbose:
+        show(0, cumulative_time)
+
     for k, item in enumerate(to_progress):
         t0 = time()
         yield item
         cumulative_time += time() - t0
-        show(k + 1, cumulative_time)
+        if verbose:
+            show(k + 1, cumulative_time)
+        else:
+            sys.stdout.write("")
+
     sys.stdout.write("\n")
     sys.stdout.flush()
 
