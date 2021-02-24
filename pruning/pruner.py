@@ -5,8 +5,8 @@ import torch
 from torch import nn
 import torch.nn.utils.prune as prune
 
-from learner import Learner
-from models import PreActBlock
+from src.learner import Learner
+from src.models import PreActBlock
 
 
 def rgetattr(obj, attr, *args):

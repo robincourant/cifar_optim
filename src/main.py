@@ -1,9 +1,9 @@
 import argparse
 
-from data_processing import Container
+from container import Container
 from learner import Learner
 from models import NaiveConvNet, PreActResNet, ResNet18
-from quantizer import BinaryQuantizer, HalfQuantizer
+from quantization.quantizer import BinaryQuantizer, HalfQuantizer
 from utils import get_accuracy, plot_training_curves
 
 if __name__ == "__main__":
