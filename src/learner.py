@@ -10,8 +10,9 @@ from torch.utils.data import DataLoader
 from torch.utils.tensorboard import SummaryWriter
 from torchsummary import summary
 
-from utils import get_accuracy, progressbar
-from container import Container
+from quantization.quantizer import BinaryQuantizer, HalfQuantizer
+from src.container import Container
+from src.utils import get_accuracy, progressbar
 
 
 class Learner:
@@ -23,13 +24,16 @@ class Learner:
         weight_decay: float = 5e-4,
         momentum: float = 0.9,
         early_stopping=None,
+        save: bool = False,
+        logs: bool = False,
+        verbose: int = 1,
     ):
         self.device = torch.device(
             "cuda:0" if torch.cuda.is_available() else "cpu"
         )
         self.container = container
         self.quantizer = net
-        if net.quantizer_name == None:
+        if net.quantizer_name is None:
             self.net = net.to(self.device)
         else:
             self.net = self.quantizer.net.to(self.device)
@@ -49,6 +53,9 @@ class Learner:
         self.writer = SummaryWriter(
             f"{self.container.rootdir}/logs/{self.model_name}"
         )
+        self.save = save
+        self.logs = logs
+        self.verbose = verbose
 
     def fit(
         self,
@@ -68,8 +75,6 @@ class Learner:
         self.lr_scheduler = optim.lr_scheduler.CosineAnnealingLR(
             self.optimizer, T_max=n_epochs
         )
-        # Step learning rate scheduler
-        # self.lr_scheduler = optim.lr_scheduler.StepLR(self.optimizer, 15, 0.2)
 
         for epoch in range(n_epochs):
             self.current_epoch = epoch
@@ -99,14 +104,16 @@ class Learner:
             history["accuracy"].append(train_accuracy)
             history["val_loss"].append(val_loss)
             history["val_accuracy"].append(val_accuracy)
-            self._write_logs(
-                train_loss, train_accuracy, val_loss, val_accuracy
-            )
+            if self.logs:
+                self._write_logs(
+                    train_loss, train_accuracy, val_loss, val_accuracy
+                )
 
             # Save the best model
             if val_accuracy > best_accuracy:
                 best_accuracy = val_accuracy
-                self._save()
+                if self.save:
+                    self._save()
 
             if self.quantizer.quantizer_name == "binary":
                 self.quantizer.restore_params()
@@ -131,7 +138,10 @@ class Learner:
         history_df.index.name = "epochs"
         self.writer.close()
         # Load the best model
-        self.load(f"{self.container.rootdir}/models/{self.model_name}.pth")
+        if self.save:
+            self.load()
+        elif self.quantizer.quantizer_name == "binary":
+            self.quantizer.binarize_params()
 
         return history_df
 
@@ -187,7 +197,9 @@ class Learner:
         self.net.train()
         train_outputs, train_labels, train_loss = [], [], []
         for step, (inputs, labels) in progressbar(
-            enumerate(train_loader), n_steps=len(train_loader), verbose=True
+            enumerate(train_loader),
+            n_steps=len(train_loader),
+            verbose=self.verbose,
         ):
             inputs = inputs.to(self.device)
             labels = labels.to(self.device)
@@ -258,7 +270,7 @@ class Learner:
         saving_path = f"{self.container.rootdir}/models/{self.model_name}.pth"
         if self.quantizer.quantizer_name == "binary":
             self.quantizer.get_bool_params()
-            torch.save(self.net, saving_path)
+            torch.save({"weights": self.net.state_dict()}, saving_path)
             self.quantizer.get_float_params()
         else:
             torch.save(self.net, saving_path)
@@ -266,14 +278,20 @@ class Learner:
 
     def load(
         self,
-        model_path: str = "current",
+        model_path=None,
     ):
         """Load a saved model."""
-        if model_path == "current":
+        if model_path is None:
             model_path = (
                 f"{self.container.rootdir}/models/{self.model_name}.pth"
             )
-        self.net = torch.load(model_path, map_location=self.device)
+        if self.quantizer.quantizer_name == "binary":
+            self.net.load_state_dict(
+                torch.load(model_path, map_location=self.device)["weights"]
+            )
+            self.quantizer.get_float_params()
+        else:
+            self.net = torch.load(model_path, map_location=self.device)
 
     def get_model_summary(self):
         """Print summary of the model."""

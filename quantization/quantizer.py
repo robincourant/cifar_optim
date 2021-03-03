@@ -1,3 +1,4 @@
+import torch
 import torch.nn as nn
 import numpy as np
 from torch.autograd import Variable
@@ -65,17 +66,20 @@ class BinaryQuantizer:
             )
 
     def get_bool_params(self):
-        """Transform -1,1 weights in False,True"""
+        """Transform -1,1 weights in False,True."""
         for index in range(self.num_of_params):
-            self.target_modules[index].data.copy_(
-                self.target_modules[index].data >= 0
+            self.target_modules[index].data = (
+                self.target_modules[index].data > 0
             )
+            self.target_modules[index].requires_grad = False
 
     def get_float_params(self):
+        """Transform False-True weights in -1,1."""
         for index in range(self.num_of_params):
-            self.target_modules[index].data.copy_(
-                self.target_modules[index].data * 2 - 1
+            self.target_modules[index].data = (
+                self.target_modules[index].data.float() * 2 - 1
             )
+            self.target_modules[index].requires_grad = True
 
     def forward(self, x):
         """Perform the forward propagation given a sample."""

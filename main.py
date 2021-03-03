@@ -1,10 +1,10 @@
 import argparse
 
-from container import Container
-from learner import Learner
-from models import NaiveConvNet, PreActResNet, ResNet18
 from quantization.quantizer import BinaryQuantizer, HalfQuantizer
-from utils import get_accuracy, plot_training_curves
+from src.container import Container
+from src.learner import Learner
+from src.models import NaiveConvNet, PreActResNet, ResNet18
+from src.utils import get_accuracy, plot_training_curves
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
@@ -61,6 +61,18 @@ if __name__ == "__main__":
         choices=["half", "binary"],
         help="Quantizer to use",
     )
+
+    parser.add_argument("--save", "-s", action="store_true")
+    parser.add_argument("--logs", "-l", action="store_true")
+    parser.add_argument("--verbose", "-v", action="store_false")
+    parser.add_argument(
+        "--verbose",
+        "-v",
+        type=int,
+        default=1,
+        choices=[0, 1],
+        help="Degree of verbose to use",
+    )
     args = parser.parse_args()
 
     # Load and process datasets
@@ -99,7 +111,7 @@ if __name__ == "__main__":
         "momentum": args.momentum,
         "weight_decay": args.weight_decay,
     }
-    learner = Learner(container, net, **net_params)
+    learner = Learner(container, net, args.save, args.logs, **net_params)
 
     assert not (
         (learner.device == "cuda:0") and (quantizer_name != "half")
