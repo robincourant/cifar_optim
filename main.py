@@ -47,11 +47,11 @@ if __name__ == "__main__":
         "--weight-decay",
         "-wd",
         type=float,
-        default=1e-3,
+        default=5e-4,
         help="Weight decay value",
     )
     parser.add_argument(
-        "--momentum", "-m", type=float, default=1e-3, help="Momentum value"
+        "--momentum", "-m", type=float, default=0.9, help="Momentum value"
     )
     parser.add_argument(
         "--quantizer",
@@ -60,6 +60,17 @@ if __name__ == "__main__":
         default=None,
         choices=["half", "binary"],
         help="Quantizer to use",
+    )
+
+    parser.add_argument("--save", "-s", action="store_true")
+    parser.add_argument("--logs", "-l", action="store_true")
+    parser.add_argument(
+        "--verbose",
+        "-v",
+        type=int,
+        default=1,
+        choices=[0, 1],
+        help="Degree of verbose to use",
     )
     args = parser.parse_args()
 
@@ -99,7 +110,7 @@ if __name__ == "__main__":
         "momentum": args.momentum,
         "weight_decay": args.weight_decay,
     }
-    learner = Learner(container, net, **net_params)
+    learner = Learner(container, net, args.save, args.logs, **net_params)
 
     assert not (
         (learner.device == "cuda:0") and (quantizer_name != "half")
