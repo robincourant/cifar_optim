@@ -1,7 +1,7 @@
 import argparse
 
 from quantization.quantizer import BinaryQuantizer, HalfQuantizer
-from src.container import Container
+from data_processing.container import Container
 from src.learner import Learner
 from src.models import NaiveConvNet, PreActResNet, ResNet18
 from src.utils import get_accuracy, plot_training_curves
@@ -47,11 +47,11 @@ if __name__ == "__main__":
         "--weight-decay",
         "-wd",
         type=float,
-        default=1e-3,
+        default=5e-4,
         help="Weight decay value",
     )
     parser.add_argument(
-        "--momentum", "-m", type=float, default=1e-3, help="Momentum value"
+        "--momentum", "-m", type=float, default=0.9, help="Momentum value"
     )
     parser.add_argument(
         "--quantizer",

@@ -11,7 +11,7 @@ from torch.utils.data import DataLoader
 from torch.utils.tensorboard import SummaryWriter
 from torchsummary import summary
 
-from src.container import Container
+from data_processing.container import Container
 from src.utils import get_accuracy, progressbar
 
 
