@@ -50,12 +50,14 @@ class Learner:
         self.model_name = (
             f"{net.name}_lr{learning_rate}_wd{weight_decay}_m{momentum}"
         )
-        self.writer = SummaryWriter(
-            f"{self.container.rootdir}/logs/{self.model_name}"
-        )
         self.save = save
         self.logs = logs
         self.verbose = verbose
+
+        if self.logs:
+            self.writer = SummaryWriter(
+                f"{self.container.rootdir}/logs/{self.model_name}"
+            )
 
     def fit(
         self,
@@ -136,7 +138,8 @@ class Learner:
 
         history_df = pd.DataFrame(history)
         history_df.index.name = "epochs"
-        self.writer.close()
+        if self.logs:
+            self.writer.close()
         # Load the best model
         if self.save:
             self.load()
@@ -223,14 +226,17 @@ class Learner:
             train_outputs.append(outputs)
             train_labels.append(labels)
             train_loss.append(loss)
-            self.writer.add_scalar(
-                "loss/train_step",
-                loss,
-                self.current_epoch * len(train_loader) + step,
-            )
+
+            if self.logs:
+                self.writer.add_scalar(
+                    "loss/train_step",
+                    loss,
+                    self.current_epoch * len(train_loader) + step,
+                )
 
         train_loss = torch.mean(torch.stack(train_loss)).item()
-        self.writer.flush()
+        if self.logs:
+            self.writer.flush()
 
         return torch.cat(train_outputs), torch.cat(train_labels), train_loss
 
@@ -281,6 +287,11 @@ class Learner:
         model_path=None,
     ):
         """Load a saved model."""
+        # Necessary, in order to avoid an `AttributeError`
+        current_file = os.path.dirname(os.path.abspath(__file__))
+        if current_file not in sys.path:
+            sys.path.append(current_file)
+
         if model_path is None:
             model_path = (
                 f"{self.container.rootdir}/models/{self.model_name}.pth"
