@@ -37,6 +37,12 @@ if __name__ == "__main__":
         "--reduction-rate", "-r", type=int, default=1, help="Reduction rate"
     )
     parser.add_argument(
+        "--data-augmentation",
+        "-a",
+        action="store_true",
+        help="Enable data augmentation",
+    )
+    parser.add_argument(
         "--learning-rate",
         "-lr",
         type=float,
@@ -68,6 +74,7 @@ if __name__ == "__main__":
         rootdir=args.rootdir,
         batch_size=args.batch_size,
         reduction_rate=args.reduction_rate,
+        augmentation=args.data_augmentation,
     )
     dataset_name = args.dataset
     if dataset_name == "cifar_scratch":
