@@ -1,7 +1,7 @@
 import argparse
 
 from quantization.quantizer import BinaryQuantizer, HalfQuantizer
-from src.container import Container
+from data_processing.container import Container
 from src.learner import Learner
 from src.models import NaiveConvNet, PreActResNet, ResNet18
 from src.utils import get_accuracy, plot_training_curves
@@ -35,6 +35,12 @@ if __name__ == "__main__":
     )
     parser.add_argument(
         "--reduction-rate", "-r", type=int, default=1, help="Reduction rate"
+    )
+    parser.add_argument(
+        "--data-augmentation",
+        "-a",
+        action="store_true",
+        help="Enable data augmentation",
     )
     parser.add_argument(
         "--learning-rate",
@@ -79,6 +85,7 @@ if __name__ == "__main__":
         rootdir=args.rootdir,
         batch_size=args.batch_size,
         reduction_rate=args.reduction_rate,
+        augmentation=args.data_augmentation,
     )
     dataset_name = args.dataset
     if dataset_name == "cifar_scratch":

@@ -7,6 +7,9 @@ from torch.utils.data.sampler import SubsetRandomSampler
 from torchvision.datasets import CIFAR10
 import torchvision.transforms as transforms
 
+from data_processing.autoaugment import CIFAR10Policy
+from data_processing.cutout import Cutout
+
 
 class Container:
     def __init__(
@@ -16,6 +19,7 @@ class Container:
         n_classes: int = 10,
         batch_size: int = 32,
         reduction_rate: int = 1,
+        augmentation: bool = True,
     ):
         self.rootdir = rootdir
         self.train_size = train_size
@@ -24,6 +28,7 @@ class Container:
             reduction_rate  # Keep 1000/R training samples and 100/R test
         )
         self.batch_size = batch_size
+        self.augmention = augmentation
 
     def train_validation_split(
         self, n_train_samples: int
@@ -125,14 +130,27 @@ class Container:
         )
 
         # Initialize the data transformers for train and test sets
-        train_data_transformer = transforms.Compose(
-            [
-                transforms.RandomCrop(32, padding=4),  # Augmentation
-                transforms.RandomHorizontalFlip(),  # Augmentation
-                transforms.ToTensor(),  # Casting
-                normalizer,  # Normalization
-            ]
-        )
+        if self.augmention:
+            train_data_transformer = transforms.Compose(
+                [
+                    transforms.RandomCrop(32, padding=4),  # Augmentation
+                    transforms.RandomHorizontalFlip(),  # Augmentation
+                    CIFAR10Policy(),  # Augmentation
+                    transforms.ToTensor(),  # Casting
+                    Cutout(n_holes=1, length=16),  # Augmentation
+                    normalizer,  # Normalization
+                ]
+            )
+        else:
+            train_data_transformer = transforms.Compose(
+                [
+                    transforms.RandomCrop(32, padding=4),  # Augmentation
+                    transforms.RandomHorizontalFlip(),  # Augmentation
+                    transforms.ToTensor(),
+                    normalizer,
+                ]
+            )
+
         test_data_transformer = transforms.Compose(
             [
                 transforms.ToTensor(),  # Casting
