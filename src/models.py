@@ -7,7 +7,7 @@ import torchvision
 class NaiveConvNet(nn.Module):
     """Small convolutional network with few parameters (fast but false)."""
 
-    def __init__(self, n_classes=4):
+    def __init__(self, n_classes=10):
         super(NaiveConvNet, self).__init__()
         self.quantizer_name = None
         self.name = "naive_convnet"
@@ -86,21 +86,74 @@ class PreActResNet(nn.Module):
         self.in_planes = int(64 / r)
 
         self.conv1 = nn.Conv2d(
-            3, int(64 / r), kernel_size=3, stride=1, padding=1, bias=False
+            3, self.in_planes, kernel_size=3, stride=1, padding=1, bias=False
         )
         self.layer1 = self._make_layer(
-            block, int(64 / r), num_blocks[0], stride=1
+            block, self.in_planes, num_blocks[0], stride=1
         )
         self.layer2 = self._make_layer(
-            block, int(128 / r), num_blocks[1], stride=2
+            block, 2 * self.in_planes, num_blocks[1], stride=2
         )
         self.layer3 = self._make_layer(
-            block, int(256 / r), num_blocks[2], stride=2
+            block, 2 * self.in_planes, num_blocks[2], stride=2
         )
         self.layer4 = self._make_layer(
-            block, int(512 / r), num_blocks[3], stride=2
+            block, 2 * self.in_planes, num_blocks[3], stride=2
         )
-        self.linear = nn.Linear(int(512 / r) * block.expansion, n_classes)
+        self.linear = nn.Linear(self.in_planes * block.expansion, n_classes)
+
+    def _make_layer(self, block, planes, num_blocks, stride):
+        strides = [stride] + [1] * (num_blocks - 1)
+        layers = []
+        for stride in strides:
+            layers.append(block(self.in_planes, planes, stride))
+            self.in_planes = planes * block.expansion
+        return nn.Sequential(*layers)
+
+    def forward(self, x):
+        x = self.conv1(x)
+        x = self.layer1(x)
+        x = self.layer2(x)
+        x = self.layer3(x)
+        x = self.layer4(x)
+        x = F.avg_pool2d(x, 4)
+        x = x.view(x.size(0), -1)
+        x = self.linear(x)
+        return x
+
+
+class SmallPreActResNet(nn.Module):
+    """
+    Benchmark model for pruning evaluation: enable to train a model from
+    scratch with the same numbre of parameters after structured pruning
+    (currently remove 40% of layer 4 parameters).
+    """
+
+    def __init__(
+        self, block=PreActBlock, num_blocks=[2, 2, 2, 2], n_classes=10, r=1
+    ):
+        super(SmallPreActResNet, self).__init__()
+        self.quantizer_name = None
+        self.name = "small_preact_resnet"
+        self.in_planes = int(64 / r)
+
+        self.conv1 = nn.Conv2d(
+            3, self.in_planes, kernel_size=3, stride=1, padding=1, bias=False
+        )
+        self.layer1 = self._make_layer(
+            block, self.in_planes, num_blocks[0], stride=1
+        )
+        self.layer2 = self._make_layer(
+            block, 2 * self.in_planes, num_blocks[1], stride=2
+        )
+        self.layer3 = self._make_layer(
+            block, 2 * self.in_planes, num_blocks[2], stride=2
+        )
+        out_planes = int(0.6 * 2 * self.in_planes)
+        self.layer4 = self._make_layer(
+            block, out_planes, num_blocks[3], stride=2
+        )
+        self.linear = nn.Linear(out_planes * block.expansion, n_classes)
 
     def _make_layer(self, block, planes, num_blocks, stride):
         strides = [stride] + [1] * (num_blocks - 1)
@@ -125,7 +178,7 @@ class PreActResNet(nn.Module):
 class ResNet18(nn.Module):
     """Pre-trained resnet model on the ImageNet ILSVRC 2012 dataset."""
 
-    def __init__(self, n_classes=4):
+    def __init__(self, n_classes=10):
         super(ResNet18, self).__init__()
         self.quantizer = None
         self.name = "pretrained_resnet18"

@@ -3,7 +3,7 @@ import argparse
 from quantization.quantizer import BinaryQuantizer, HalfQuantizer
 from data_processing.container import Container
 from src.learner import Learner
-from src.models import NaiveConvNet, PreActResNet, ResNet18
+from src.models import NaiveConvNet, PreActResNet, ResNet18, SmallPreActResNet
 from src.utils import get_accuracy, plot_training_curves
 
 if __name__ == "__main__":
@@ -17,7 +17,12 @@ if __name__ == "__main__":
     parser.add_argument(
         "model",
         type=str,
-        choices=["naive_convnet", "preact_resnet", "pretrained_resnet18"],
+        choices=[
+            "naive_convnet",
+            "preact_resnet",
+            "pretrained_resnet18",
+            "small_preact_resnet",
+        ],
         help="Model to train",
     )
     parser.add_argument(
@@ -101,6 +106,8 @@ if __name__ == "__main__":
         net = NaiveConvNet(n_classes=container.n_classes)
     elif model_name == "preact_resnet":
         net = PreActResNet(n_classes=container.n_classes)
+    elif model_name == "small_preact_resnet":
+        net = SmallPreActResNet(n_classes=container.n_classes)
     elif model_name == "pretrained_resnet18":
         net = ResNet18(n_classes=container.n_classes)
     else:
@@ -116,8 +123,10 @@ if __name__ == "__main__":
         "learning_rate": args.learning_rate,
         "momentum": args.momentum,
         "weight_decay": args.weight_decay,
+        "save": args.save,
+        "logs": args.logs,
     }
-    learner = Learner(container, net, args.save, args.logs, **net_params)
+    learner = Learner(container, net, **net_params)
 
     assert not (
         (learner.device == "cuda:0") and (quantizer_name != "half")
