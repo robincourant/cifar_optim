@@ -3,7 +3,13 @@ import argparse
 from quantization.quantizer import BinaryQuantizer, HalfQuantizer
 from data_processing.container import Container
 from src.learner import Learner
-from src.models import NaiveConvNet, PreActResNet, ResNet18, SmallPreActResNet
+from src.models import (
+    NaiveConvNet,
+    DenseNet,
+    PreActResNet,
+    ResNet18,
+    SmallPreActResNet,
+)
 from src.utils import get_accuracy, plot_training_curves
 from src.micronet_score import get_micronet_score
 
@@ -22,6 +28,7 @@ def parse_arguments() -> argparse.ArgumentParser:
         type=str,
         choices=[
             "naive_convnet",
+            "densenet",
             "preact_resnet",
             "pretrained_resnet18",
             "small_preact_resnet",
@@ -129,6 +136,8 @@ def setup_learner(args: argparse.ArgumentParser) -> Learner:
     model_type = args.model
     if model_type == "naive_convnet":
         net = NaiveConvNet(n_classes=container.n_classes)
+    elif model_type == "densenet":
+        net = DenseNet(n_classes=container.n_classes)
     elif model_type == "preact_resnet":
         net = PreActResNet(n_classes=container.n_classes)
     elif model_type == "small_preact_resnet":
