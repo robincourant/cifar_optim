@@ -207,8 +207,10 @@ if __name__ == "__main__":
         fit_model(args, learner)
 
     evaluate_model(args, learner)
+
+    # Compute the micronet score
     sota_bits = 16
     quantizer_name = args.quantizer
     if quantizer_name == "binary":
         sota_bits = 1
-    get_micronet_score(sota_bits)
+    get_micronet_score(learner.net, sota_bits)

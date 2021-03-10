@@ -3,7 +3,7 @@ from functools import partial
 import torch
 import torch.nn as nn
 
-from src.models import PreActResNet, SmallPreActResNet
+from src.models import PreActResNet
 
 
 def count_conv2d(m, x, y, r):
@@ -139,26 +139,23 @@ def profile(model, input_size, quantization_rate, custom_ops={}):
     )
 
 
-def get_micronet_score(sota_bits):
+def get_micronet_score(sota_model, sota_bits):
     ref_model = PreActResNet()
-    sota_model = SmallPreActResNet()
 
     ref_bits = 16
 
     quantization_rate = sota_bits / ref_bits
-    ref_ops, ref_params, ref_storage = profile(
-        ref_model, (1, 3, 32, 32), quantization_rate
-    )
+    ref_ops, ref_params, ref_storage = profile(ref_model, (1, 3, 32, 32), 0.5)
     sota_ops, sota_params, sota_storage = profile(
         sota_model, (1, 3, 32, 32), quantization_rate
     )
     print(
-        f"[Ref] n_ops: {ref_ops:,}, n_params: {ref_params:,}, ",
-        f"ref_storage: {ref_storage:,}, ref_bits: {ref_bits}",
+        f"[Ref] n_ops: {ref_ops:,} / n_params: {ref_params:,} / ",
+        f"ref_storage: {ref_storage:,} / ref_bits: {ref_bits}",
     )
     print(
-        f"[SOTA] n_ops: {sota_ops:,}, n_params: {sota_params:,}, ",
-        f"sota_storage: {sota_storage:,}, sota_bits: {sota_bits}\n",
+        f"[SOTA] n_ops: {sota_ops:,} / n_params: {sota_params:,} / ",
+        f"sota_storage: {sota_storage:,} / sota_bits: {sota_bits}\n",
     )
 
     score_ops = sota_ops / ref_ops
@@ -166,6 +163,6 @@ def get_micronet_score(sota_bits):
     score = score_ops + score_params
     print(
         f"Global score: {score:.2E} ",
-        f"(score_ops: {score_ops:.2E}, score_params: {score_params:.2E}",
+        f"(score_ops: {score_ops:.2E} / score_params: {score_params:.2E}",
         f"quantization_rate: {quantization_rate:.2f})",
     )
