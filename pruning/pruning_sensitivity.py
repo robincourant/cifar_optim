@@ -68,7 +68,16 @@ if __name__ == "__main__":
 
     no_retrain_res = defaultdict(list)
     retrain_res = defaultdict(list)
-    rates = [0.2, 0.4, 0.6, 0.8, 0.99]
+
+    # Load the model
+    learner.load(model_path)
+    # Evaluate without retraining
+    outputs, labels, loss = learner.evaluate(container.test_loader)
+    accuracy = get_accuracy(outputs, labels)
+    no_retrain_res[0.0] = [accuracy for _ in range(4)]
+    retrain_res[0.0] = [accuracy for _ in range(4)]
+
+    rates = [0.2, 0.4, 0.6, 0.8]
     for current_pruning_rate in rates:
         for k_layer in range(1, 5):
             # Set the pruning rates for each layer
@@ -105,8 +114,8 @@ if __name__ == "__main__":
     retrain_res["layers"] = ["layer1", "layer2", "layer3", "layer4"]
     # Add accuracy if the model is fully pruned (random for pruning rate = 1)
     random_accuracy = 1 / container.n_classes
-    no_retrain_res[1.0] = [0.1 for _ in range(4)]
-    retrain_res[1.0] = [0.1 for _ in range(4)]
+    no_retrain_res[1.0] = [random_accuracy for _ in range(4)]
+    retrain_res[1.0] = [random_accuracy for _ in range(4)]
 
     no_retrain_res_df = pd.DataFrame(no_retrain_res).melt(
         "layers", var_name="pruning_rate", value_name="accuracy"
