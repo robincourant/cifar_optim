@@ -24,7 +24,7 @@ class Learner:
         weight_decay: float = 5e-4,
         momentum: float = 0.9,
         early_stopping=None,
-        save: bool = False,
+        model_name: str = None,
         logs: bool = False,
         verbose: int = 1,
     ):
@@ -47,10 +47,13 @@ class Learner:
         self.n_early_stopping = early_stopping
         self.early_stopping_delta = 0.8
 
-        self.model_name = (
-            f"{net.name}_lr{learning_rate}_wd{weight_decay}_m{momentum}"
-        )
-        self.save = save
+        if model_name is None:
+            self.model_name = (
+                f"{net.name}_lr{learning_rate}_wd{weight_decay}_m{momentum}"
+            )
+        else:
+            self.model_name = model_name
+
         self.logs = logs
         self.verbose = verbose
 
@@ -114,8 +117,7 @@ class Learner:
             # Save the best model
             if val_accuracy > best_accuracy:
                 best_accuracy = val_accuracy
-                if self.save:
-                    self._save()
+                self._save()
 
             if self.quantizer.quantizer_name == "binary":
                 self.quantizer.restore_params()
@@ -141,9 +143,9 @@ class Learner:
         if self.logs:
             self.writer.close()
         # Load the best model
-        if self.save:
-            self.load()
-        elif self.quantizer.quantizer_name == "binary":
+        self.load()
+
+        if self.quantizer.quantizer_name == "binary":
             self.quantizer.binarize_params()
 
         return history_df

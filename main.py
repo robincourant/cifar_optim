@@ -6,7 +6,9 @@ from src.learner import Learner
 from src.models import NaiveConvNet, PreActResNet, ResNet18, SmallPreActResNet
 from src.utils import get_accuracy, plot_training_curves
 
-if __name__ == "__main__":
+
+def parse_arguments() -> argparse.ArgumentParser:
+    """Parse input arguments."""
     parser = argparse.ArgumentParser()
     parser.add_argument(
         "dataset",
@@ -24,6 +26,13 @@ if __name__ == "__main__":
             "small_preact_resnet",
         ],
         help="Model to train",
+    )
+    parser.add_argument(
+        "--model-name",
+        "-n",
+        type=str,
+        default=None,
+        help="Name of the model",
     )
     parser.add_argument(
         "--rootdir",
@@ -73,8 +82,18 @@ if __name__ == "__main__":
         help="Quantizer to use",
     )
 
-    parser.add_argument("--save", "-s", action="store_true")
-    parser.add_argument("--logs", "-l", action="store_true")
+    parser.add_argument(
+        "--train",
+        "-t",
+        action="store_true",
+        help="Wether to train model or not",
+    )
+    parser.add_argument(
+        "--logs",
+        "-l",
+        action="store_true",
+        help="Wether to save logs or not",
+    )
     parser.add_argument(
         "--verbose",
         "-v",
@@ -85,6 +104,11 @@ if __name__ == "__main__":
     )
     args = parser.parse_args()
 
+    return args
+
+
+def setup_learner(args: argparse.ArgumentParser) -> Learner:
+    """Setup the learner with a given net and container."""
     # Load and process datasets
     container = Container(
         rootdir=args.rootdir,
@@ -100,18 +124,18 @@ if __name__ == "__main__":
     else:
         raise ValueError(f"Dataset: {dataset_name} is not known")
 
-    # Initialize and train the model
-    model_name = args.model
-    if model_name == "naive_convnet":
+    # Initialize the model
+    model_type = args.model
+    if model_type == "naive_convnet":
         net = NaiveConvNet(n_classes=container.n_classes)
-    elif model_name == "preact_resnet":
+    elif model_type == "preact_resnet":
         net = PreActResNet(n_classes=container.n_classes)
-    elif model_name == "small_preact_resnet":
+    elif model_type == "small_preact_resnet":
         net = SmallPreActResNet(n_classes=container.n_classes)
-    elif model_name == "pretrained_resnet18":
+    elif model_type == "pretrained_resnet18":
         net = ResNet18(n_classes=container.n_classes)
     else:
-        raise ValueError(f"Model: {model_name} is not known")
+        raise ValueError(f"Model: {model_type} is not known")
 
     quantizer_name = args.quantizer
     if quantizer_name == "half":
@@ -123,7 +147,7 @@ if __name__ == "__main__":
         "learning_rate": args.learning_rate,
         "momentum": args.momentum,
         "weight_decay": args.weight_decay,
-        "save": args.save,
+        "model_name": args.model_name,
         "logs": args.logs,
     }
     learner = Learner(container, net, **net_params)
@@ -136,11 +160,17 @@ if __name__ == "__main__":
     learner.get_model_summary()
     print("\n")
 
+    return learner
+
+
+def fit_model(
+    args: argparse.ArgumentParser, learner: Learner
+):
     # Fit the model
     history = learner.fit(n_epochs=args.epochs)
 
     # Plot training curves
-    log_dir = f"{container.rootdir}/logs/{learner.model_name}"
+    log_dir = f"{learner.container.rootdir}/logs/{learner.model_name}"
     plot_training_curves(
         "loss",
         history,
@@ -153,13 +183,28 @@ if __name__ == "__main__":
     )
 
     train_outputs, train_labels, train_loss = learner.evaluate(
-        container.train_loader
+        learner.container.train_loader
     )
     train_accuracy = get_accuracy(train_outputs, train_labels)
     print(f"train_accuracy: {train_accuracy:.3f}")
 
+
+def evaluate_model(args: argparse.ArgumentParser, learner: Learner):
+    """Evaluate the model on the test set."""
+    learner.load()
+
     test_outputs, test_labels, test_loss = learner.evaluate(
-        container.test_loader
+        learner.container.test_loader
     )
     test_accuracy = get_accuracy(test_outputs, test_labels)
     print(f"test_accuracy: {test_accuracy:.3f}")
+
+
+if __name__ == "__main__":
+    args = parse_arguments()
+    learner = setup_learner(args)
+
+    if args.train:
+        fit_model(args, learner)
+
+    evaluate_model(args, learner)
