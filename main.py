@@ -5,6 +5,7 @@ from data_processing.container import Container
 from src.learner import Learner
 from src.models import NaiveConvNet, PreActResNet, ResNet18, SmallPreActResNet
 from src.utils import get_accuracy, plot_training_curves
+from src.micronet_score import get_micronet_score
 
 
 def parse_arguments() -> argparse.ArgumentParser:
@@ -163,9 +164,7 @@ def setup_learner(args: argparse.ArgumentParser) -> Learner:
     return learner
 
 
-def fit_model(
-    args: argparse.ArgumentParser, learner: Learner
-):
+def fit_model(args: argparse.ArgumentParser, learner: Learner):
     # Fit the model
     history = learner.fit(n_epochs=args.epochs)
 
@@ -208,3 +207,10 @@ if __name__ == "__main__":
         fit_model(args, learner)
 
     evaluate_model(args, learner)
+
+    # Compute the micronet score
+    sota_bits = 16
+    quantizer_name = args.quantizer
+    if quantizer_name == "binary":
+        sota_bits = 1
+    get_micronet_score(learner.net, sota_bits)
