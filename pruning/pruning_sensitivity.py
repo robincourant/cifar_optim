@@ -8,8 +8,8 @@ from collections import defaultdict
 
 import pandas as pd
 
+from data_processing.container import Container
 from pruning.pruner import UnstructuredPruner, StructuredPruner
-from src.container import Container
 from src.learner import Learner
 from src.models import PreActResNet
 from src.utils import get_accuracy, plot_sensitivity_curves
@@ -56,7 +56,7 @@ if __name__ == "__main__":
     )
     container.load_scratch_dataset()
 
-    model_path = args.rootdir + "/models/" + args.model_name
+    model_path = args.rootdir + "/models/" + args.model_name + ".pth"
     net = PreActResNet(n_classes=container.n_classes)
     learner = Learner(container, net)
     learner.get_model_summary()
