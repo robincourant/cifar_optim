@@ -1,5 +1,6 @@
 from functools import partial
 
+import copy
 import torch
 import torch.nn as nn
 
@@ -139,12 +140,12 @@ def profile(model, input_size, quantization_rate, custom_ops={}):
     )
 
 
-def get_micronet_score(sota_model, sota_bits):
-    ref_model = PreActResNet()
-
+def get_micronet_score(model, sota_bits=16):
+    ref_model = copy.deepcopy(PreActResNet())
+    sota_model = copy.deepcopy(model)
     ref_bits = 16
 
-    quantization_rate = sota_bits / ref_bits
+    quantization_rate = sota_bits / (2 * ref_bits)
     ref_ops, ref_params, ref_storage = profile(ref_model, (1, 3, 32, 32), 0.5)
     sota_ops, sota_params, sota_storage = profile(
         sota_model, (1, 3, 32, 32), quantization_rate

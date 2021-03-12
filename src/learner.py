@@ -76,7 +76,8 @@ class Learner:
         history = defaultdict(list)
         best_accuracy = -1
 
-        # Cosine learning rate scheduler
+        # Cosine learning rate scheduler or stepLR scheduler for short fitting
+        # if
         self.lr_scheduler = optim.lr_scheduler.CosineAnnealingLR(
             self.optimizer, T_max=n_epochs
         )
