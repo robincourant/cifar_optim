@@ -222,4 +222,4 @@ if __name__ == "__main__":
     quantizer_name = args.quantizer
     if quantizer_name == "binary":
         sota_bits = 1
-    get_micronet_score(learner.net, sota_bits)
+    get_micronet_score(learner.net.to("cpu"), sota_bits)
