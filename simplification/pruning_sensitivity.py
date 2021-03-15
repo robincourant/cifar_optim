@@ -1,4 +1,5 @@
 """
+(Preact-ResNet architectures)
 This script computes the sensitivity curves of each layer of the model for
 unstructured or structured pruning.
 """
@@ -81,8 +82,8 @@ if __name__ == "__main__":
     for current_pruning_rate in rates:
         for k_layer in range(1, 5):
             # Set the pruning rates for each layer
-            current_layer = f"layer{k_layer}"
-            pruning_rates = {f"layer{k}": 0 for k in range(1, 5)}
+            current_layer = f"dense{k_layer}"
+            pruning_rates = {f"dense{k}": 0 for k in range(1, 5)}
             pruning_rates[current_layer] = current_pruning_rate
 
             # Load the model
