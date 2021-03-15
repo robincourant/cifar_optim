@@ -206,32 +206,40 @@ class ResNet18(nn.Module):
 class Bottleneck(nn.Module):
     def __init__(self, in_planes, growth_rate):
         super(Bottleneck, self).__init__()
-        self.bn1 = nn.BatchNorm2d(in_planes)
-        self.conv1 = nn.Conv2d(
-            in_planes, 4 * growth_rate, kernel_size=1, bias=False
-        )
-        self.bn2 = nn.BatchNorm2d(4 * growth_rate)
-        self.conv2 = nn.Conv2d(
-            4 * growth_rate, growth_rate, kernel_size=3, padding=1, bias=False
+        self.bottleneck = nn.Sequential(
+            nn.BatchNorm2d(in_planes),
+            nn.ReLU(),
+            nn.Conv2d(in_planes, 4 * growth_rate, kernel_size=1, bias=False),
+            nn.BatchNorm2d(4 * growth_rate),
+            nn.ReLU(),
+            nn.Conv2d(
+                4 * growth_rate,
+                growth_rate,
+                kernel_size=3,
+                padding=1,
+                bias=False,
+            ),
         )
 
-    def forward(self, x):
-        out = self.conv1(F.relu(self.bn1(x)))
-        out = self.conv2(F.relu(self.bn2(out)))
-        out = torch.cat([out, x], 1)
-        return out
+    def forward(self, x0):
+        x = self.bottleneck(x0)
+        x = torch.cat([x, x0], 1)
+        return x
 
 
 class Transition(nn.Module):
     def __init__(self, in_planes, out_planes):
         super(Transition, self).__init__()
-        self.bn = nn.BatchNorm2d(in_planes)
-        self.conv = nn.Conv2d(in_planes, out_planes, kernel_size=1, bias=False)
+        self.transition = nn.Sequential(
+            nn.BatchNorm2d(in_planes),
+            nn.ReLU(),
+            nn.Conv2d(in_planes, out_planes, kernel_size=1, bias=False),
+            nn.AvgPool2d(2),
+        )
 
     def forward(self, x):
-        out = self.conv(F.relu(self.bn(x)))
-        out = F.avg_pool2d(out, 2)
-        return out
+        x = self.transition(x)
+        return x
 
 
 class DenseNet(nn.Module):
@@ -285,12 +293,17 @@ class DenseNet(nn.Module):
         return nn.Sequential(*layers)
 
     def forward(self, x):
-        out = self.conv1(x)
-        out = self.trans1(self.dense1(out))
-        out = self.trans2(self.dense2(out))
-        out = self.trans3(self.dense3(out))
-        out = self.dense4(out)
-        out = F.avg_pool2d(F.relu(self.bn(out)), 4)
-        out = out.view(out.size(0), -1)
-        out = self.linear(out)
-        return out
+        x = self.conv1(x)
+        x = self.dense1(x)
+        x = self.trans1(x)
+        x = self.dense2(x)
+        x = self.trans2(x)
+        x = self.dense3(x)
+        x = self.trans3(x)
+        x = self.dense4(x)
+        x = self.bn(x)
+        x = F.relu(x)
+        x = F.avg_pool2d(x, 4)
+        x = x.view(x.size(0), -1)
+        x = self.linear(x)
+        return x
