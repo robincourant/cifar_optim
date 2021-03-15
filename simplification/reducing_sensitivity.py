@@ -7,6 +7,8 @@ import argparse
 from collections import defaultdict
 import pickle
 
+import torch
+
 from data_processing.container import Container
 from src.learner import Learner
 from src.models import DenseNet
@@ -41,6 +43,7 @@ def default_to_regular(d):
 
 
 if __name__ == "__main__":
+    device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
     args = parse_arguments()
 
     container = Container(
@@ -67,31 +70,35 @@ if __name__ == "__main__":
                 n_classes=container.n_classes,
                 **{parameter_name: current_value},
             )
-            _, n_params, _ = profile(net, (1, 3, 32, 32), 1)
+            if parameter_name == "nblocks":
+                mode_name = f"simple_{parameter_name}_{''.join(str(value) for value in current_value)}"
+            else:
+                mode_name = f"simple_{parameter_name}_{current_value}"
+            # _, n_params, _ = profile(net, (1, 3, 32, 32), 1)
             learner = Learner(
                 container,
                 net,
                 early_stopping=10,
-                model_name=f"simple_{parameter_name}_{current_value}",
+                model_name=mode_name,
+                logs=True,
             )
+
             # Fit and evaluate the simpler model
             _ = learner.fit(n_epochs=args.epochs)
             outputs, labels, loss = learner.evaluate(container.test_loader)
             accuracy = get_accuracy(outputs, labels)
 
             print(
-                f"[{parameter_name}] {current_value} - n_params: {n_params:,}",
-                f" - accuracy: {accuracy}",
+                f"[{parameter_name}] {current_value} - accuracy: {accuracy}",
             )
 
             log_file.write(
-                f"[{parameter_name}] {current_value} - n_params: {n_params:,} "
-                f"- accuracy: {accuracy} \n"
+                f"[{parameter_name}] {current_value} - accuracy: {accuracy} \n"
             )
             simplification_scores[parameter_name]["value"].append(
                 current_value
             )
-            simplification_scores[parameter_name]["n_params"].append(n_params)
+            # simplification_scores[parameter_name]["n_params"].append(n_params)
             simplification_scores[parameter_name]["accuracy"].append(accuracy)
 
     simplification_scores = default_to_regular(simplification_scores)

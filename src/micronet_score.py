@@ -74,6 +74,7 @@ def count_sequential(m, x, y):
 # custom ops could be used to pass variable customized ratios for quantization
 def profile(model, input_size, quantization_rate, custom_ops={}):
 
+    model = model.to("cpu")
     model.eval()
 
     def add_hooks(m):
