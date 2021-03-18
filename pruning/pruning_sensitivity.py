@@ -1,4 +1,5 @@
 """
+(Preact-ResNet architectures)
 This script computes the sensitivity curves of each layer of the model for
 unstructured or structured pruning.
 """
@@ -9,9 +10,9 @@ from collections import defaultdict
 import pandas as pd
 
 from data_processing.container import Container
-from pruning.pruner import UnstructuredPruner, StructuredPruner
+from simplification.pruner import UnstructuredPruner, StructuredPruner
 from src.learner import Learner
-from src.models import PreActResNet
+from src.models import PreActResNet, SmallPreActResNet
 from src.utils import get_accuracy, plot_sensitivity_curves
 
 
@@ -57,7 +58,7 @@ if __name__ == "__main__":
     container.load_scratch_dataset()
 
     model_path = args.rootdir + "/models/" + args.model_name + ".pth"
-    net = PreActResNet(n_classes=container.n_classes)
+    net = SmallPreActResNet(n_classes=container.n_classes)
     learner = Learner(container, net)
     learner.get_model_summary()
 
@@ -74,15 +75,15 @@ if __name__ == "__main__":
     # Evaluate without retraining
     outputs, labels, loss = learner.evaluate(container.test_loader)
     accuracy = get_accuracy(outputs, labels)
-    no_retrain_res[0.0] = [accuracy for _ in range(4)]
-    retrain_res[0.0] = [accuracy for _ in range(4)]
+    no_retrain_res[0.0] = [accuracy for _ in range(3)]
+    retrain_res[0.0] = [accuracy for _ in range(3)]
 
     rates = [0.2, 0.4, 0.6, 0.8]
     for current_pruning_rate in rates:
-        for k_layer in range(1, 5):
+        for k_layer in range(1, 4):
             # Set the pruning rates for each layer
-            current_layer = f"layer{k_layer}"
-            pruning_rates = {f"layer{k}": 0 for k in range(1, 5)}
+            current_layer = f"dense{k_layer}"
+            pruning_rates = {f"dense{k}": 0 for k in range(1, 4)}
             pruning_rates[current_layer] = current_pruning_rate
 
             # Load the model
@@ -110,12 +111,12 @@ if __name__ == "__main__":
             print("\n")
 
     # Add the name of corresponding layers
-    no_retrain_res["layers"] = ["layer1", "layer2", "layer3", "layer4"]
-    retrain_res["layers"] = ["layer1", "layer2", "layer3", "layer4"]
+    no_retrain_res["layers"] = ["layer1", "layer2", "layer3"]
+    retrain_res["layers"] = ["layer1", "layer2", "layer3"]
     # Add accuracy if the model is fully pruned (random for pruning rate = 1)
     random_accuracy = 1 / container.n_classes
-    no_retrain_res[1.0] = [random_accuracy for _ in range(4)]
-    retrain_res[1.0] = [random_accuracy for _ in range(4)]
+    no_retrain_res[1.0] = [random_accuracy for _ in range(3)]
+    retrain_res[1.0] = [random_accuracy for _ in range(3)]
 
     no_retrain_res_df = pd.DataFrame(no_retrain_res).melt(
         "layers", var_name="pruning_rate", value_name="accuracy"

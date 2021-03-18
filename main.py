@@ -56,13 +56,24 @@ def parse_arguments() -> argparse.ArgumentParser:
         "--batch-size", "-bs", type=int, default=32, help="Batch size"
     )
     parser.add_argument(
-        "--reduction-rate", "-r", type=int, default=1, help="Reduction rate"
+        "--data-rate",
+        "-dr",
+        type=int,
+        default=1,
+        help="Data reduction rate",
     )
     parser.add_argument(
         "--data-augmentation",
         "-a",
         action="store_true",
         help="Enable data augmentation",
+    )
+    parser.add_argument(
+        "--param-rate",
+        "-pr",
+        type=int,
+        default=1,
+        help="Parameter reduction rate",
     )
     parser.add_argument(
         "--learning-rate",
@@ -121,7 +132,7 @@ def setup_learner(args: argparse.ArgumentParser) -> Learner:
     container = Container(
         rootdir=args.rootdir,
         batch_size=args.batch_size,
-        reduction_rate=args.reduction_rate,
+        reduction_rate=args.data_rate,
         augmentation=args.data_augmentation,
     )
     dataset_name = args.dataset
@@ -139,9 +150,11 @@ def setup_learner(args: argparse.ArgumentParser) -> Learner:
     elif model_type == "densenet":
         net = DenseNet(n_classes=container.n_classes)
     elif model_type == "preact_resnet":
-        net = PreActResNet(n_classes=container.n_classes)
+        net = PreActResNet(n_classes=container.n_classes, r=args.param_rate)
     elif model_type == "small_preact_resnet":
-        net = SmallPreActResNet(n_classes=container.n_classes)
+        net = SmallPreActResNet(
+            n_classes=container.n_classes, r=args.param_rate
+        )
     elif model_type == "pretrained_resnet18":
         net = ResNet18(n_classes=container.n_classes)
     else:
