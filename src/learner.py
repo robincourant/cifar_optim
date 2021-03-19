@@ -38,12 +38,16 @@ class Learner:
         else:
             self.net = self.quantizer.net.to(self.device)
         self.criterion = nn.CrossEntropyLoss()
-        self.optimizer = optim.SGD(
+        self.optimizer = optim.Adam(
             self.net.parameters(),
             lr=learning_rate,
-            weight_decay=weight_decay,
-            momentum=momentum,
         )
+        # self.optimizer = optim.SGD(
+        #     self.net.parameters(),
+        #     lr=learning_rate,
+        #     weight_decay=weight_decay,
+        #     momentum=momentum,
+        # )
         self.n_early_stopping = early_stopping
         self.early_stopping_delta = 0.8
 
@@ -76,10 +80,10 @@ class Learner:
         history = defaultdict(list)
         best_accuracy = -1
 
-        # Cosine learning rate scheduler
-        self.lr_scheduler = optim.lr_scheduler.CosineAnnealingLR(
-            self.optimizer, T_max=n_epochs
-        )
+        # # Cosine learning rate scheduler
+        # self.lr_scheduler = optim.lr_scheduler.CosineAnnealingLR(
+        #     self.optimizer, T_max=n_epochs
+        # )
 
         for epoch in range(n_epochs):
             self.current_epoch = epoch
@@ -88,8 +92,8 @@ class Learner:
             # Training step
             _, _, _ = self._train(self.container.train_loader)
 
-            # Update the learning rate
-            self.lr_scheduler.step()
+            # # Update the learning rate
+            # self.lr_scheduler.step()
 
             # Evaluation step
             if self.quantizer.quantizer_name == "binary":
@@ -176,6 +180,15 @@ class Learner:
         self.writer.add_scalar(
             "accuracy/val_epoch",
             val_accuracy,
+            self.current_epoch,
+        )
+
+        for param_group in self.optimizer.param_groups:
+            pass
+        lr = param_group["lr"]
+        self.writer.add_scalar(
+            "accuracy/learning_rate",
+            lr,
             self.current_epoch,
         )
 
