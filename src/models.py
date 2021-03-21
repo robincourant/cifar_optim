@@ -131,7 +131,7 @@ class SmallPreActResNet(nn.Module):
     """
 
     def __init__(
-        self, block=PreActBlock, num_blocks=[2, 2, 2, 2], n_classes=10, r=1
+        self, block=PreActBlock, num_blocks=[2, 2, 2, 2], n_classes=10, r=4
     ):
         super(SmallPreActResNet, self).__init__()
         self.quantizer_name = None

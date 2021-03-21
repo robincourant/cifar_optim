@@ -10,10 +10,11 @@ from collections import defaultdict
 import pandas as pd
 
 from data_processing.container import Container
-from simplification.pruner import UnstructuredPruner, StructuredPruner
+from pruning.pruner import UnstructuredPruner, StructuredPruner
 from src.learner import Learner
-from src.models import PreActResNet, SmallPreActResNet
+from src.models import SmallPreActResNet
 from src.utils import get_accuracy, plot_sensitivity_curves
+from src.micronet_score import profile
 
 
 def parse_arguments() -> argparse.ArgumentParser:
@@ -57,10 +58,15 @@ if __name__ == "__main__":
     )
     container.load_scratch_dataset()
 
+    pruned_model_name = args.model_name + "_pruned"
     model_path = args.rootdir + "/models/" + args.model_name + ".pth"
+    log_file = open(
+        args.rootdir + f"/logs/sensitivity_pruning_logs_{args.model_name}.txt",
+        "w+",
+    )
     net = SmallPreActResNet(n_classes=container.n_classes)
-    learner = Learner(container, net)
-    learner.get_model_summary()
+    learner = Learner(container, net, model_name=pruned_model_name)
+    # learner.get_model_summary()
 
     if args.pruner == "unstructured":
         Pruner = UnstructuredPruner
@@ -73,10 +79,14 @@ if __name__ == "__main__":
     # Load the model
     learner.load(model_path)
     # Evaluate without retraining
-    outputs, labels, loss = learner.evaluate(container.test_loader)
+    outputs, labels, loss = learner.evaluate(learner.container.test_loader)
     accuracy = get_accuracy(outputs, labels)
     no_retrain_res[0.0] = [accuracy for _ in range(3)]
     retrain_res[0.0] = [accuracy for _ in range(3)]
+    total_params = sum(p.numel() for p in learner.net.parameters())
+    log_file.write(
+        f"[pruning rate: 0.0] n params: {total_params:,} / {accuracy:.2} \n"
+    )
 
     rates = [0.2, 0.4, 0.6, 0.8]
     for current_pruning_rate in rates:
@@ -97,17 +107,26 @@ if __name__ == "__main__":
                 pruner.get_sparsity()
             if args.pruner == "structured":
                 # For structured pruning look at the number of parameters
-                learner.get_model_summary()
+                # learner.get_model_summary()
+                pass
+            total_params = sum(p.numel() for p in learner.net.parameters())
 
             # Evaluate without retraining
             outputs, labels, loss = learner.evaluate(container.test_loader)
             accuracy = get_accuracy(outputs, labels)
             no_retrain_res[current_pruning_rate].append(accuracy)
+            log_file.write(
+                f"[pruning rate: {current_pruning_rate} / layer: {k_layer}] "
+                + f"n params: {total_params:,} / no retrain {accuracy:.2}  /"
+            )
+
             # Evaluate after retraining
             _ = learner.fit(n_epochs=args.epochs)
+            learner.load()
             outputs, labels, loss = learner.evaluate(container.test_loader)
             accuracy = get_accuracy(outputs, labels)
             retrain_res[current_pruning_rate].append(accuracy)
+            log_file.write(f" retrain: {accuracy:.2} \n")
             print("\n")
 
     # Add the name of corresponding layers
@@ -134,3 +153,4 @@ if __name__ == "__main__":
     print(no_retrain_plot_path)
     plot_sensitivity_curves(no_retrain_res_df, no_retrain_plot_path)
     plot_sensitivity_curves(retrain_res_df, retrain_plot_path)
+    log_file.close()
