@@ -148,9 +148,9 @@ class SmallPreActResNet(nn.Module):
             block, 2 * self.in_planes, num_blocks[1], stride=2
         )
         # out_planes = int(0.6 * 2 * self.in_planes)
-        self.layer3 = self._make_layer(
-            block, 2 * self.in_planes, num_blocks[2], stride=2
-        )
+        # self.layer3 = self._make_layer(
+        #     block, 2 * self.in_planes, num_blocks[2], stride=2
+        # )
         # self.layer4 = self._make_layer(
         #     block, out_planes, num_blocks[3], stride=2
         # )
@@ -168,9 +168,9 @@ class SmallPreActResNet(nn.Module):
         x = self.conv1(x)
         x = self.layer1(x)
         x = self.layer2(x)
-        x = self.layer3(x)
+        # x = self.layer3(x)
         # x = self.layer4(x)
-        x = F.avg_pool2d(x, 8)
+        x = F.avg_pool2d(x, 16)
         x = x.view(x.size(0), -1)
         x = self.linear(x)
         return x
